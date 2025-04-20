@@ -12,7 +12,7 @@ const getFileIcon = (type) => {
     case 'pdf':
       return <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600">PDF</div>;
     case 'doc':
-      return <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">DOC</div>;
+      return <div className="w-10 h-10 bg-[#68ccff]/20 rounded-full flex items-center justify-center text-[#25a1e1]">DOC</div>;
     default:
       return <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">FILE</div>;
   }
@@ -79,59 +79,59 @@ export default function FormatSelection() {
   const MobileView = () => (
     <>
       {/* Header simplifié */}
-      <div className="flex justify-between items-center px-3 py-2 bg-white rounded-2xl shadow-md border border-blue-100 mt-2 mx-2 mb-2">
+      <div className="flex justify-between items-center px-3 py-2 bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 mt-2 mx-2 mb-2">
         <div className="flex items-center">
           <button 
             onClick={() => router.back()}
-            className="mr-2 p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+            className="mr-2 p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-lg hover:bg-[#68ccff]/20"
           >
             <FaArrowLeft className="w-3 h-3" />
           </button>
-          <h1 className="text-lg font-bold text-blue-600 flex items-center">
+          <h1 className="text-lg font-bold text-[#25a1e1] flex items-center">
             <span className="mr-1">Configuration</span>
             <FaBrain className="text-yellow-500 animate-pulse w-4 h-4" />
           </h1>
         </div>
         <button 
           onClick={toggleMenu} 
-          className="p-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100"
+          className="p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-xl hover:bg-[#68ccff]/20"
         >
           <CiMenuBurger className="w-5 h-5" />
         </button>
       </div>
       
       {/* Explication compacte */}
-      <div className="bg-blue-50 p-3 rounded-xl mb-2 mx-2 border border-blue-100 flex items-center">
-        <FaBrain className="text-blue-600 w-5 h-5 mr-2 flex-shrink-0" />
-        <p className="text-sm text-blue-700">Le Fayot va créer tes mémocartes personnalisées</p>
+      <div className="bg-[#68ccff]/10 p-3 rounded-xl mb-2 mx-2 border border-[#68ccff]/30 flex items-center">
+        <FaBrain className="text-[#25a1e1] w-5 h-5 mr-2 flex-shrink-0" />
+        <p className="text-sm text-[#106996]">Le Fayot va créer tes mémocartes personnalisées</p>
       </div>
       
       {/* Format & Carte Count Section */}
       <div className="mx-2 grid grid-cols-1 gap-2">
         {/* Memo format - only one active option */}
         <div 
-          className="bg-white border-2 border-blue-500 ring-4 ring-blue-200 rounded-xl p-3 shadow flex items-center"
+          className="bg-[#ebebd7] border-2 border-[#25a1e1] ring-4 ring-[#68ccff]/30 rounded-xl p-3 shadow flex items-center"
           onClick={() => handleFormatSelect('memo')}
         >
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 shadow-md">
-            <BsCardHeading className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-[#68ccff]/20 rounded-full flex items-center justify-center mr-3 shadow-md">
+            <BsCardHeading className="w-5 h-5 text-[#25a1e1]" />
           </div>
           <div className="flex-grow">
             <h3 className="text-base font-bold text-gray-800">Mémocartes</h3>
             <p className="text-xs text-gray-600">Parfaites pour réviser efficacement</p>
           </div>
-          <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+          <div className="w-5 h-5 bg-[#25a1e1] rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#ebebd7]" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </div>
         </div>
         
         {/* Card count slider */}
-        <div className="bg-white border border-blue-100 rounded-xl p-3 shadow">
+        <div className="bg-[#ebebd7] border border-[#68ccff]/30 rounded-xl p-3 shadow">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-bold text-gray-800">Nombre de mémocartes</h3>
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded">{cardCount}</span>
+            <span className="bg-[#68ccff]/20 text-[#106996] text-xs font-medium px-2 py-0.5 rounded">{cardCount}</span>
           </div>
           
           <input 
@@ -141,7 +141,7 @@ export default function FormatSelection() {
             step="5" 
             value={cardCount} 
             onChange={(e) => setCardCount(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#25a1e1]"
           />
           
           <div className="flex justify-between mt-1 px-0">
@@ -156,14 +156,14 @@ export default function FormatSelection() {
         
         {/* Generate button */}
         <button
-          className={`bg-blue-600 text-white py-3 px-3 rounded-xl transition-all duration-300 shadow-md flex items-center justify-center
-            ${isGenerating ? 'opacity-90' : 'hover:bg-blue-700 hover:shadow-xl'}`}
+          className={`bg-[#25a1e1] text-[#ebebd7] py-3 px-3 rounded-xl transition-all duration-300 shadow-md flex items-center justify-center
+            ${isGenerating ? 'opacity-90' : 'hover:bg-[#106996] hover:shadow-xl'}`}
           disabled={isGenerating}
           onClick={handleLaunch}
         >
           {isGenerating ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#ebebd7]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -189,19 +189,19 @@ export default function FormatSelection() {
       <div className="flex items-center mb-4">
         <button 
           onClick={() => router.back()}
-          className="mr-4 p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-300 flex items-center"
+          className="mr-4 p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-lg hover:bg-[#68ccff]/20 transition-all duration-300 flex items-center"
         >
           <FaArrowLeft className="w-3 h-3 mr-1" />
           <span className="text-sm font-medium">Retour</span>
         </button>
-        <h1 className="text-xl font-bold text-blue-600 flex items-center">
+        <h1 className="text-xl font-bold text-[#25a1e1] flex items-center">
           <span className="mr-2">Configuration</span>
           <FaBrain className="text-yellow-500 animate-pulse w-5 h-5" />
         </h1>
       </div>
       
       {/* Fichier importé - compact */}
-      <div className="bg-white p-3 rounded-xl shadow-md border border-blue-100 mb-6">
+      <div className="bg-[#ebebd7] p-3 rounded-xl shadow-md border border-[#68ccff]/30 mb-6">
         <div className="flex items-center">
           {getFileIcon(importedFile.type)}
           <div className="ml-3">
@@ -219,23 +219,23 @@ export default function FormatSelection() {
       {/* Grid 2x2 pour les 4 catégories principales */}
       <div className="grid grid-cols-2 gap-6 flex-grow">
         {/* Format */}
-        <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100">
+        <div className="bg-[#ebebd7] p-4 rounded-xl shadow-md border border-[#68ccff]/30">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Format d'étude</h2>
           
           <div 
-            className="border-2 border-blue-500 ring-2 ring-blue-200 rounded-xl p-4 shadow-md flex items-center cursor-pointer"
+            className="border-2 border-[#25a1e1] ring-2 ring-[#68ccff]/30 rounded-xl p-4 shadow-md flex items-center cursor-pointer"
             onClick={() => handleFormatSelect('memo')}
           >
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4 shadow-sm">
-              <BsCardHeading className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-[#68ccff]/20 rounded-full flex items-center justify-center mr-4 shadow-sm">
+              <BsCardHeading className="w-6 h-6 text-[#25a1e1]" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-800">Mémocartes</h3>
               <p className="text-sm text-gray-600">Parfaites pour réviser efficacement</p>
             </div>
             <div className="ml-auto">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <div className="w-6 h-6 bg-[#25a1e1] rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#ebebd7]" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -243,8 +243,8 @@ export default function FormatSelection() {
           </div>
           
           <div className="border border-gray-200 rounded-xl p-4 shadow-sm flex items-center opacity-60 cursor-not-allowed relative mt-4">
-            <div className="absolute inset-0 bg-white bg-opacity-30 rounded-xl flex items-center justify-center z-10">
-              <div className="bg-gray-800 bg-opacity-60 text-white text-xs py-1 px-2 rounded font-medium">
+            <div className="absolute inset-0 bg-[#ebebd7] bg-opacity-30 rounded-xl flex items-center justify-center z-10">
+              <div className="bg-gray-800 bg-opacity-60 text-[#ebebd7] text-xs py-1 px-2 rounded font-medium">
                 Bientôt disponible
               </div>
             </div>
@@ -259,14 +259,14 @@ export default function FormatSelection() {
         </div>
         
         {/* Nombre de mémocartes */}
-        <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100">
+        <div className="bg-[#ebebd7] p-4 rounded-xl shadow-md border border-[#68ccff]/30">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Nombre de mémocartes</h2>
           
           <div className="mb-6">
             <div className="mb-4">
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-500">Peu de cartes</span>
-                <span className="text-lg font-bold text-blue-600">{cardCount}</span>
+                <span className="text-lg font-bold text-[#25a1e1]">{cardCount}</span>
                 <span className="text-sm text-gray-500">Beaucoup de cartes</span>
               </div>
               
@@ -277,7 +277,7 @@ export default function FormatSelection() {
                 step="5" 
                 value={cardCount} 
                 onChange={(e) => setCardCount(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#25a1e1]"
               />
             </div>
             
@@ -293,21 +293,21 @@ export default function FormatSelection() {
         </div>
         
         {/* Options supplémentaires (simplifié) */}
-        <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100">
+        <div className="bg-[#ebebd7] p-4 rounded-xl shadow-md border border-[#68ccff]/30">
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
             <FaStar className="text-yellow-500 mr-2 w-4 h-4" />
             Options
           </h2>
           
           <div className="space-y-3">
-            <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
-              <h3 className="font-medium text-purple-800 flex items-center text-sm mb-1">
-                <FaMagic className="text-purple-600 mr-2 w-4 h-4" />
+            <div className="bg-[#68ccff]/10 p-3 rounded-lg border border-[#68ccff]/30">
+              <h3 className="font-medium text-[#106996] flex items-center text-sm mb-1">
+                <FaMagic className="text-[#25a1e1] mr-2 w-4 h-4" />
                 Inclure des exemples
               </h3>
               <div className="flex justify-end">
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                  <input type="checkbox" name="toggle" id="includeExamples" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer" />
+                  <input type="checkbox" name="toggle" id="includeExamples" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-[#ebebd7] border-4 border-gray-300 appearance-none cursor-pointer" />
                   <label htmlFor="includeExamples" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function FormatSelection() {
               </h3>
               <div className="flex justify-end">
                 <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                  <input type="checkbox" name="toggle" id="includeReferences" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer" />
+                  <input type="checkbox" name="toggle" id="includeReferences" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-[#ebebd7] border-4 border-gray-300 appearance-none cursor-pointer" />
                   <label htmlFor="includeReferences" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function FormatSelection() {
         </div>
         
         {/* Générer */}
-        <div className="bg-white p-4 rounded-xl shadow-md border border-blue-100 flex flex-col">
+        <div className="bg-[#ebebd7] p-4 rounded-xl shadow-md border border-[#68ccff]/30 flex flex-col">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Points difficiles</h2>
           
           <textarea
@@ -341,14 +341,14 @@ export default function FormatSelection() {
           />
           
           <button
-            className={`bg-blue-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg w-full flex items-center justify-center
-              ${isGenerating ? 'opacity-90' : 'hover:bg-blue-700'}`}
+            className={`bg-[#25a1e1] text-[#ebebd7] font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg w-full flex items-center justify-center
+              ${isGenerating ? 'opacity-90' : 'hover:bg-[#106996]'}`}
             disabled={isGenerating}
             onClick={handleLaunch}
           >
             {isGenerating ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#ebebd7]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -367,7 +367,7 @@ export default function FormatSelection() {
   );
 
   return (
-    <div className='flex flex-col md:flex-row h-screen bg-gradient-to-br from-blue-100 via-white to-blue-50 overflow-hidden'>
+    <div className='flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#68ccff]/20 via-[#ebebd7] to-[#68ccff]/10 overflow-hidden'>
       {!isMobile && <NavBarComponent/>}
       <div className="flex-1 overflow-auto">
         {isMobile ? <MobileView /> : <DesktopView />}
@@ -379,19 +379,19 @@ export default function FormatSelection() {
               className="fixed inset-0 bg-black bg-opacity-50 z-30 backdrop-blur-sm transition-opacity duration-300 ease-in-out"
               onClick={() => setIsMenuOpen(false)}
             />
-            <div className="fixed top-0 right-0 h-full w-72 bg-white shadow-xl z-40 rounded-l-2xl border-l-2 border-blue-100 transform transition-all duration-300 ease-in-out translate-x-0">
+            <div className="fixed top-0 right-0 h-full w-72 bg-[#ebebd7] shadow-xl z-40 rounded-l-2xl border-l-2 border-[#68ccff]/30 transform transition-all duration-300 ease-in-out translate-x-0">
               <div className="p-5 pt-16">
                 <div className='mb-6 flex items-center justify-center'>
-                  <h1 className='text-xl text-blue-600 font-bold'>Fayot</h1>
+                  <h1 className='text-xl text-[#25a1e1] font-bold'>Fayot</h1>
                 </div>
                 
                 <div className='flex flex-col space-y-3 mt-4'>
                   <Link 
                     href="/" 
-                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all duration-300 active:bg-blue-100 hover:bg-blue-50 hover:scale-105'
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all duration-300 active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <CiHome className="w-5 h-5 text-blue-500" />
+                    <CiHome className="w-5 h-5 text-[#25a1e1]" />
                     <span className='ml-3 text-[16px] font-medium'>Accueil</span>
                   </Link>
                 </div>

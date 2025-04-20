@@ -173,22 +173,22 @@ export default function Results() {
   const MobileView = () => (
     <div className='h-screen overflow-auto'>
       {/* Header compact avec bouton retour intégré */}
-      <div className='flex justify-between items-center bg-white rounded-2xl shadow-md border border-blue-100 transition-all duration-300 py-2 px-3 mx-2 mt-2 mb-1'>
+      <div className='flex justify-between items-center bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 transition-all duration-300 py-2 px-3 mx-2 mt-2 mb-1'>
         <div className="flex items-center">
           <button 
             onClick={() => router.push('/format-selection')}
-            className="mr-2 p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-300"
+            className="mr-2 p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-lg hover:bg-[#68ccff]/20 transition-all duration-300"
           >
             <FaArrowLeft className="w-3 h-3" />
           </button>
-          <h1 className="text-lg font-bold text-blue-600 flex items-center">
+          <h1 className="text-lg font-bold text-[#25a1e1] flex items-center">
             <span className="mr-2">Mémocartes</span>
             <FaBrain className="text-yellow-500 animate-pulse w-4 h-4" />
           </h1>
           {/* Barre de progression intégrée */}
           <div className="ml-3 flex items-center">
             <div className="w-16 bg-gray-200 rounded-full h-1.5 mr-1">
-              <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
+              <div className="bg-[#25a1e1] h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
             </div>
             <span className="text-xs font-medium text-gray-500">{memorizedCount}/{memoCards.length}</span>
           </div>
@@ -196,7 +196,7 @@ export default function Results() {
         <div className="flex items-center">
           <button 
             onClick={toggleMenu} 
-            className="p-2 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors duration-300"
+            className="p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-xl hover:bg-[#68ccff]/20 transition-colors duration-300"
           >
             <CiMenuBurger className="w-5 h-5" />
           </button>
@@ -206,38 +206,38 @@ export default function Results() {
       {/* Contenu principal - utilisant tout l'espace vertical restant */}
       <div className="flex-grow flex flex-col mx-2">
         {loadingCards ? (
-          <div className="bg-white rounded-2xl shadow-md border border-blue-100 flex-grow flex flex-col items-center justify-center p-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600 mb-3"></div>
+          <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col items-center justify-center p-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#25a1e1] mb-3"></div>
             <p className="text-gray-700 font-medium">Création de tes mémocartes...</p>
             <p className="text-xs text-gray-500 mt-1">Le Fayot prépare des mémocartes pour ton cours</p>
           </div>
         ) : (
           <>
             {showDownload ? (
-              <div className="bg-white rounded-2xl shadow-md border border-blue-100 flex-grow flex flex-col p-4">
+              <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-bold text-gray-800">Télécharge tes mémocartes</h2>
                   <button 
                     onClick={() => setShowDownload(false)}
-                    className="text-blue-600 text-sm bg-blue-50 px-2 py-1 rounded-lg hover:bg-blue-100"
+                    className="text-[#25a1e1] text-sm bg-[#68ccff]/10 px-2 py-1 rounded-lg hover:bg-[#68ccff]/20"
                   >
                     <FaArrowLeft className="inline w-3 h-3 mr-1" /> Retour
                   </button>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                  <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] cursor-pointer">
+                  <div className="bg-[#68ccff]/10 p-3 rounded-xl border border-[#68ccff]/30 hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] cursor-pointer">
                     <h3 className="font-medium text-gray-800 mb-1">Format PDF</h3>
                     <p className="text-xs text-gray-500 mb-2">Pour imprimer ou partager facilement</p>
-                    <button className="w-full bg-blue-600 text-white text-sm py-1.5 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center">
+                    <button className="w-full bg-[#25a1e1] text-[#ebebd7] text-sm py-1.5 rounded-lg hover:bg-[#106996] transition-colors duration-300 flex items-center justify-center">
                       <FaDownload className="w-3 h-3 mr-1" /> Télécharger PDF
                     </button>
                   </div>
                   
-                  <div className="bg-purple-50 p-3 rounded-xl border border-purple-100 hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] cursor-pointer">
+                  <div className="bg-[#68ccff]/10 p-3 rounded-xl border border-[#68ccff]/30 hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] cursor-pointer">
                     <h3 className="font-medium text-gray-800 mb-1">Format Images</h3>
                     <p className="text-xs text-gray-500 mb-2">Pour partager sur les réseaux sociaux</p>
-                    <button className="w-full bg-purple-600 text-white text-sm py-1.5 rounded-lg hover:bg-purple-700 transition-colors duration-300 flex items-center justify-center">
+                    <button className="w-full bg-[#106996] text-[#ebebd7] text-sm py-1.5 rounded-lg hover:bg-[#25a1e1] transition-colors duration-300 flex items-center justify-center">
                       <FaDownload className="w-3 h-3 mr-1" /> Télécharger Images
                     </button>
                   </div>
@@ -257,9 +257,9 @@ export default function Results() {
                       onClick={toggleFlip}
                     >
                       {/* Face avant (question) */}
-                      <div className={`absolute w-full h-full backface-hidden rounded-2xl bg-white border ${isCurrentCardMemorized ? 'border-green-300' : 'border-blue-100'} p-4 flex flex-col`}>
+                      <div className={`absolute w-full h-full backface-hidden rounded-2xl bg-[#ebebd7] border ${isCurrentCardMemorized ? 'border-green-300' : 'border-[#68ccff]/30'} p-4 flex flex-col`}>
                         <div className="flex justify-between items-start mb-1">
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Question {currentCardIndex + 1}/{memoCards.length}</span>
+                          <span className="px-2 py-0.5 bg-[#68ccff]/20 text-[#106996] text-xs font-medium rounded-full">Question {currentCardIndex + 1}/{memoCards.length}</span>
                           <button 
                             className={`p-1.5 rounded-full ${isCurrentCardMemorized ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'} hover:bg-green-100 hover:text-green-500 transition-colors`}
                             onClick={(e) => toggleMemorized(currentCard.id, e)}
@@ -276,7 +276,7 @@ export default function Results() {
                       </div>
 
                       {/* Face arrière (réponse) */}
-                      <div className="absolute w-full h-full backface-hidden rounded-2xl bg-white border border-blue-100 p-4 flex flex-col rotate-y-180">
+                      <div className="absolute w-full h-full backface-hidden rounded-2xl bg-[#ebebd7] border border-[#68ccff]/30 p-4 flex flex-col rotate-y-180">
                         <div className="flex justify-between items-start mb-1">
                           <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Réponse {currentCardIndex + 1}/{memoCards.length}</span>
                           <button 
@@ -303,7 +303,7 @@ export default function Results() {
                   <div className="flex justify-between items-center mb-2">
                     <button 
                       onClick={goToPrevCard}
-                      className="w-10 h-10 bg-white border border-blue-200 text-blue-600 rounded-full flex items-center justify-center shadow-sm hover:bg-blue-50 transition-all duration-300"
+                      className="w-10 h-10 bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-full flex items-center justify-center shadow-sm hover:bg-[#68ccff]/10 transition-all duration-300"
                     >
                       <FaChevronLeft className="w-4 h-4" />
                     </button>
@@ -312,14 +312,14 @@ export default function Results() {
                       {memoCards.map((_, index) => (
                         <div 
                           key={index} 
-                          className={`w-1.5 h-1.5 rounded-full ${currentCardIndex === index ? 'bg-blue-600' : 'bg-gray-300'}`}
+                          className={`w-1.5 h-1.5 rounded-full ${currentCardIndex === index ? 'bg-[#25a1e1]' : 'bg-gray-300'}`}
                         />
                       ))}
                     </div>
                     
                     <button 
                       onClick={goToNextCard}
-                      className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-blue-700 transition-all duration-300"
+                      className="w-10 h-10 bg-[#25a1e1] text-[#ebebd7] rounded-full flex items-center justify-center shadow-md hover:bg-[#106996] transition-all duration-300"
                     >
                       <FaChevronRight className="w-4 h-4" />
                     </button>
@@ -328,7 +328,7 @@ export default function Results() {
                   {/* Boutons d'action */}
                   <div className="grid grid-cols-2 gap-2">
                     <button 
-                      className="bg-white border border-blue-200 text-blue-600 rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-sm hover:bg-blue-50"
+                      className="bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-sm hover:bg-[#68ccff]/10"
                       onClick={restartCards}
                     >
                       <FaSync className="w-3 h-3 mr-1.5" />
@@ -336,7 +336,7 @@ export default function Results() {
                     </button>
                     <button 
                       onClick={() => setShowDownload(true)}
-                      className="bg-blue-600 text-white rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md hover:bg-blue-700"
+                      className="bg-[#25a1e1] text-[#ebebd7] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md hover:bg-[#106996]"
                     >
                       <FaDownload className="w-3 h-3 mr-1.5" />
                       Télécharger
@@ -359,24 +359,24 @@ export default function Results() {
         <div className="flex items-center">
           <button 
             onClick={() => router.push('/format-selection')}
-            className="mr-4 p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-300 flex items-center"
+            className="mr-4 p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-lg hover:bg-[#68ccff]/20 transition-all duration-300 flex items-center"
           >
             <FaArrowLeft className="w-3 h-3 mr-1" />
             <span className="text-sm font-medium">Retour</span>
           </button>
-          <h1 className="text-xl font-bold text-blue-600 flex items-center">
+          <h1 className="text-xl font-bold text-[#25a1e1] flex items-center">
             <span className="mr-2">Mémocartes</span>
             <FaBrain className="text-yellow-500 animate-pulse w-5 h-5" />
           </h1>
-          <div className="ml-4 bg-blue-50 rounded-full px-3 py-1 flex items-center">
-            <span className="text-xs font-medium text-blue-600">{router.query.cardCount || memoCards.length} cartes générées</span>
+          <div className="ml-4 bg-[#68ccff]/10 rounded-full px-3 py-1 flex items-center">
+            <span className="text-xs font-medium text-[#106996]">{router.query.cardCount || memoCards.length} cartes générées</span>
           </div>
         </div>
         
         {/* Actions déplacées ici */}
         <div className="flex space-x-2">
           <button 
-            className="bg-white border border-blue-200 text-blue-600 rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-sm hover:bg-blue-50 hover:scale-105 transition-all duration-300"
+            className="bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-sm hover:bg-[#68ccff]/10 hover:scale-105 transition-all duration-300"
             onClick={restartCards}
           >
             <FaSync className="w-3 h-3 mr-2" />
@@ -385,14 +385,14 @@ export default function Results() {
           
           <button 
             onClick={() => setShowDownload(true)}
-            className="bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300"
+            className="bg-[#25a1e1] text-[#ebebd7] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-[#106996] hover:scale-105 transition-all duration-300"
           >
             <FaDownload className="w-3 h-3 mr-2" />
             Télécharger
           </button>
           
           <button 
-            className="bg-indigo-600 text-white rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-indigo-700 hover:scale-105 transition-all duration-300"
+            className="bg-[#106996] text-[#ebebd7] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-[#25a1e1] hover:scale-105 transition-all duration-300"
           >
             <FaShareAlt className="w-3 h-3 mr-2" />
             Partager
@@ -405,13 +405,13 @@ export default function Results() {
         {/* Main central section with flashcards */}
         <div className="flex-1 flex flex-col rounded-2xl">
           {loadingCards ? (
-            <div className="bg-white rounded-2xl shadow-md border border-blue-100 flex-grow flex flex-col items-center justify-center p-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600 mb-3"></div>
+            <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col items-center justify-center p-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#25a1e1] mb-3"></div>
               <p className="text-gray-700 font-medium">Création de tes mémocartes...</p>
               <p className="text-xs text-gray-500 mt-1">Le Fayot prépare des mémocartes pour ton cours</p>
             </div>
           ) : (
-            <div className="flex-grow flex flex-col bg-white rounded-2xl shadow-md border border-blue-100 overflow-hidden">
+            <div className="flex-grow flex flex-col bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 overflow-hidden">
               {/* Mémocartes */}
               <div className="flex-grow flex items-center justify-center p-4">
                 <div className="perspective-1000 w-full max-w-2xl h-[55vh]"
@@ -424,9 +424,9 @@ export default function Results() {
                     onClick={toggleFlip}
                   >
                     {/* Face avant (question) */}
-                    <div className={`absolute w-full h-full backface-hidden rounded-2xl bg-white border ${isCurrentCardMemorized ? 'border-green-300' : 'border-blue-100'} p-6 flex flex-col`}>
+                    <div className={`absolute w-full h-full backface-hidden rounded-2xl bg-[#ebebd7] border ${isCurrentCardMemorized ? 'border-green-300' : 'border-[#68ccff]/30'} p-6 flex flex-col`}>
                       <div className="flex justify-between items-start mb-2">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">Question {currentCardIndex + 1}/{memoCards.length}</span>
+                        <span className="px-3 py-1 bg-[#68ccff]/20 text-[#106996] text-sm font-medium rounded-full">Question {currentCardIndex + 1}/{memoCards.length}</span>
                         <button 
                           className={`p-2 rounded-full ${isCurrentCardMemorized ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-400'} hover:bg-green-100 hover:text-green-500 transition-colors`}
                           onClick={(e) => toggleMemorized(currentCard.id, e)}
@@ -443,7 +443,7 @@ export default function Results() {
                     </div>
 
                     {/* Face arrière (réponse) */}
-                    <div className="absolute w-full h-full backface-hidden rounded-2xl bg-white border border-blue-100 p-6 flex flex-col rotate-y-180">
+                    <div className="absolute w-full h-full backface-hidden rounded-2xl bg-[#ebebd7] border border-[#68ccff]/30 p-6 flex flex-col rotate-y-180">
                       <div className="flex justify-between items-start mb-2">
                         <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">Réponse {currentCardIndex + 1}/{memoCards.length}</span>
                         <button 
@@ -465,11 +465,11 @@ export default function Results() {
               </div>
               
               {/* Controls under the card */}
-              <div className="p-3 border-t border-blue-100 bg-blue-50">
+              <div className="p-3 border-t border-[#68ccff]/30 bg-[#68ccff]/10">
                 <div className="flex justify-between items-center">
                   <button 
                     onClick={goToPrevCard}
-                    className="w-10 h-10 bg-white border border-blue-200 text-blue-600 rounded-full flex items-center justify-center shadow-sm hover:bg-blue-50 transition-all duration-300"
+                    className="w-10 h-10 bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-full flex items-center justify-center shadow-sm hover:bg-[#68ccff]/10 transition-all duration-300"
                   >
                     <FaChevronLeft className="w-4 h-4" />
                   </button>
@@ -478,14 +478,14 @@ export default function Results() {
                     {memoCards.map((_, index) => (
                       <div 
                         key={index} 
-                        className={`w-2 h-2 rounded-full ${currentCardIndex === index ? 'bg-blue-600' : 'bg-gray-300'}`}
+                        className={`w-2 h-2 rounded-full ${currentCardIndex === index ? 'bg-[#25a1e1]' : 'bg-gray-300'}`}
                       />
                     ))}
                   </div>
                   
                   <button 
                     onClick={goToNextCard}
-                    className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-blue-700 transition-all duration-300"
+                    className="w-10 h-10 bg-[#25a1e1] text-[#ebebd7] rounded-full flex items-center justify-center shadow-md hover:bg-[#106996] transition-all duration-300"
                   >
                     <FaChevronRight className="w-4 h-4" />
                   </button>
@@ -498,20 +498,20 @@ export default function Results() {
         {/* Right sidebar with additional features */}
         <div className="w-72 flex flex-col gap-3 h-full overflow-hidden">
           {/* Progress section */}
-          <div className="bg-white rounded-2xl shadow-md border border-blue-100 p-4">
+          <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 p-4">
             <h2 className="text-lg font-bold text-gray-800 mb-3">Progression</h2>
             <div className="mb-3">
               <div className="flex justify-between mb-1">
                 <span className="text-sm text-gray-500">Mémorisées</span>
-                <span className="text-sm font-bold text-blue-600">{memorizedCount}/{memoCards.length}</span>
+                <span className="text-sm font-bold text-[#25a1e1]">{memorizedCount}/{memoCards.length}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                <div className="bg-[#25a1e1] h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
               </div>
             </div>
-            <div className="bg-blue-50 rounded-lg p-3 flex items-start">
+            <div className="bg-[#68ccff]/10 rounded-lg p-3 flex items-start">
               <FaTrophy className="w-4 h-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-[#106996]">
                 {progress === 100 
                   ? "Félicitations ! Vous avez mémorisé toutes les cartes." 
                   : progress > 50 
@@ -522,20 +522,26 @@ export default function Results() {
           </div>
           
           {/* Tips section */}
-          <div className="bg-white rounded-2xl shadow-md border border-blue-100 p-3 flex-grow overflow-hidden">
-            <h2 className="text-sm font-bold text-gray-800 mb-2">Astuces</h2>
-            <div className="flex flex-col h-full gap-2">
-              <div className="bg-yellow-50 rounded-lg p-2 border border-yellow-100">
-                <div className="text-xs text-yellow-800">
-                  <span className="font-bold">Répétition espacée</span>
-                  <p className="mt-0.5">Révisez à intervalles réguliers.</p>
-                </div>
+          <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 p-4 flex-grow overflow-auto">
+            <h2 className="text-lg font-bold text-gray-800 mb-3">Astuces</h2>
+            <div className="space-y-2">
+              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-100">
+                <p className="text-sm text-yellow-800">
+                  <span className="font-bold block mb-1">Conseil de mémorisation</span>
+                  Révisez régulièrement vos cartes pour un apprentissage optimal. La répétition espacée est la clé !
+                </p>
               </div>
-              <div className="bg-green-50 rounded-lg p-2 border border-green-100">
-                <div className="text-xs text-green-800">
-                  <span className="font-bold">Auto-explication</span>
-                  <p className="mt-0.5">Expliquez à voix haute pour mémoriser.</p>
-                </div>
+              <div className="bg-green-50 rounded-lg p-3 border border-green-100">
+                <p className="text-sm text-green-800">
+                  <span className="font-bold block mb-1">Saviez-vous que...</span>
+                  Expliquer à voix haute ce que vous venez d'apprendre améliore significativement la rétention ?
+                </p>
+              </div>
+              <div className="bg-[#68ccff]/10 rounded-lg p-3 border border-[#68ccff]/30 mt-2">
+                <p className="text-sm text-[#106996]">
+                  <span className="font-bold block mb-1">Optimisez votre apprentissage</span>
+                  Créer une association visuelle avec chaque concept important peut multiplier par 10 votre capacité à mémoriser.
+                </p>
               </div>
             </div>
           </div>
@@ -545,7 +551,7 @@ export default function Results() {
   );
 
   return (
-    <div className='flex flex-col md:flex-row h-screen bg-gradient-to-br from-blue-100 via-white to-blue-50 overflow-hidden'>
+    <div className='flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#68ccff]/20 via-[#ebebd7] to-[#68ccff]/10 overflow-hidden'>
       {!isMobile && <NavBarComponent/>}
       <div className="flex-1 overflow-hidden">
         {isMobile ? <MobileView /> : <DesktopView />}
@@ -557,19 +563,19 @@ export default function Results() {
               className="fixed inset-0 bg-black bg-opacity-50 z-30 backdrop-blur-sm transition-opacity duration-300 ease-in-out"
               onClick={() => setIsMenuOpen(false)}
             />
-            <div className="fixed top-0 right-0 h-full w-72 bg-white shadow-xl z-40 rounded-l-2xl border-l-2 border-blue-100 transform transition-all duration-300 ease-in-out translate-x-0">
+            <div className="fixed top-0 right-0 h-full w-72 bg-[#ebebd7] shadow-xl z-40 rounded-l-2xl border-l-2 border-[#68ccff]/30 transform transition-all duration-300 ease-in-out translate-x-0">
               <div className="p-5 pt-16">
                 <div className='mb-6 flex items-center justify-center'>
-                  <h1 className='text-xl text-blue-600 font-bold'>Fayot</h1>
+                  <h1 className='text-xl text-[#25a1e1] font-bold'>Fayot</h1>
                 </div>
                 
                 <div className='flex flex-col space-y-3 mt-4'>
                   <Link 
                     href="/" 
-                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all duration-300 active:bg-blue-100 hover:bg-blue-50 hover:scale-105'
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all duration-300 active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <CiHome className="w-5 h-5 text-blue-500" />
+                    <CiHome className="w-5 h-5 text-[#25a1e1]" />
                     <span className='ml-3 text-[16px] font-medium'>Accueil</span>
                   </Link>
                 </div>
