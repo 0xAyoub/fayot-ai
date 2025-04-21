@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { NavBarComponent } from './NavBarComponent';
+import { NavBarComponent, SubscriptionBlock } from './NavBarComponent';
 import { useRouter } from 'next/router';
-import { FaCloudUploadAlt, FaCamera, FaArrowRight, FaGraduationCap, FaBrain, FaBook, FaLightbulb, FaStar, FaRocket } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaCamera, FaArrowRight, FaGraduationCap, FaBrain, FaBook, FaLightbulb, FaStar, FaRocket, FaQuestionCircle, FaCrown } from 'react-icons/fa';
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
+import { BsCardHeading } from 'react-icons/bs';
 
 export const HomeComponent = () => {
   const router = useRouter();
@@ -47,177 +48,273 @@ export const HomeComponent = () => {
   
   // Interface mobile optimisée avec des éléments de la desktop view
   const MobileView = () => (
-    <div className="h-[calc(100vh-16px)] mx-2 my-2 overflow-hidden">
+    <div className="h-[calc(100vh-16px)] mx-2 my-2 overflow-hidden flex flex-col">
       {/* Header simplifié */}
       <div className="flex justify-between items-center px-3 py-2 bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 mb-3">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#25a1e1] to-[#106996] rounded-xl flex items-center justify-center text-[#ebebd7] font-bold shadow-md mr-2 border-2 border-[#ebebd7]">
-            F
-          </div>
-          <h1 className="text-lg font-bold text-[#25a1e1] flex items-center">
-            <span className="mr-1">Fayot</span>
-            <FaBrain className="text-yellow-500 w-4 h-4 animate-pulse" />
-          </h1>
+          <img src="/fayotlogo.png" alt="Logo Fayot" className="h-8" />
         </div>
-            <button 
+        <button 
           onClick={toggleMenu} 
           className="p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-xl hover:bg-[#68ccff]/20 transition-colors duration-300"
-            >
+        >
           <CiMenuBurger className="w-5 h-5" />
-            </button>
-          </div>
+        </button>
+      </div>
 
       {/* Main content - version adaptée de la desktop view */}
-      <div className="bg-gradient-to-br from-[#68ccff]/10 via-[#ebebd7] to-[#68ccff]/20 rounded-2xl shadow-md border border-[#68ccff]/30 p-3 relative h-[calc(100%-52px)] overflow-hidden">
+      <div className="bg-gradient-to-br from-[#68ccff]/10 via-[#ebebd7] to-[#68ccff]/20 rounded-2xl shadow-md border border-[#68ccff]/30 p-3 relative flex-grow flex flex-col overflow-hidden">
         {/* Éléments décoratifs minimalistes */}
         <div className="absolute -top-6 -left-6 w-20 h-20 bg-yellow-200 rounded-full opacity-30 animate-pulse"></div>
         <div className="absolute -bottom-8 -right-8 w-20 h-20 bg-[#68ccff]/60 rounded-full opacity-30 animate-pulse" style={{ animationDelay: "1s" }}></div>
         
         <div className="h-full flex flex-col relative z-10">
-          {/* Left section */}
-          <div className="mb-3">
+          {/* Deux bulles d'explication */}
+          <div className="space-y-2 mb-3">
             <div className="bg-[#ebebd7] p-3 rounded-xl shadow-sm border border-[#68ccff]/30 relative">
-              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996] mb-2">
-                Transforme tes cours en mémocartes !
-              </h2>
-              
-              <p className="text-gray-700 text-sm mb-2">
-                Améliore ta mémorisation. Plus besoin de passer des heures à créer des fiches !
-              </p>
-              
-              <div className="grid grid-cols-2 gap-2 mb-1">
-                <div className="bg-[#68ccff]/10 p-2 rounded-lg border border-[#68ccff]/30 flex items-start">
-                  <FaRocket className="w-3 h-3 mr-1 text-[#106996] mt-0.5" />
-                  <div>
-                    <span className="text-xs font-bold text-[#106996]">Gain de temps</span>
-                    <p className="text-xs text-[#106996]/80 mt-0.5">Conversion en quelques secondes</p>
-                  </div>
-                </div>
-                
-                <div className="bg-green-50 p-2 rounded-lg border border-green-100 flex items-start">
-                  <FaStar className="w-3 h-3 mr-1 text-green-600 mt-0.5" />
-                  <div>
-                    <span className="text-xs font-bold text-green-600">Personnalisé</span>
-                    <p className="text-xs text-green-700 mt-0.5">Adapté à ta façon d'apprendre</p>
-                  </div>
-                </div>
+              <div className="absolute -left-2 -top-2 w-6 h-6 bg-[#25a1e1] rounded-full flex items-center justify-center text-[#ebebd7] font-bold shadow-sm border border-[#ebebd7]">
+                1
               </div>
+              <h2 className="text-base font-medium text-[#106996] ml-3">
+                Transforme ton cours en <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996]">mémo cartes</span>
+              </h2>
+            </div>
+            
+            <div className="bg-[#ebebd7] p-3 rounded-xl shadow-sm border border-[#68ccff]/30 relative">
+              <div className="absolute -left-2 -top-2 w-6 h-6 bg-[#25a1e1] rounded-full flex items-center justify-center text-[#ebebd7] font-bold shadow-sm border border-[#ebebd7]">
+                2
+              </div>
+              <h2 className="text-base font-medium text-[#106996] ml-3">
+                Révise à l'aide de <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996]">QCM sur-mesure</span>
+              </h2>
             </div>
           </div>
 
-          {/* Right section - Upload options */}
-          <div className="flex-grow">
+          {/* Zone d'import simplifiée */}
+          <div className="flex-grow flex flex-col">
             <div className="bg-[#ebebd7] rounded-xl border border-[#68ccff]/30 shadow-sm p-3 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-bold text-gray-800">
+              <div className="mb-3 text-center">
+                <h3 className="text-lg font-bold text-gray-800 bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996]">
                   Importe ton cours
                 </h3>
-                <div className="bg-[#68ccff]/10 px-2 py-1 rounded-lg text-[#106996] text-xs font-medium">
+                <div className="inline-block mt-1 bg-[#68ccff]/10 px-2 py-1 rounded-lg text-[#106996] text-xs font-medium">
                   <FaLightbulb className="inline text-yellow-500 w-3 h-3 mr-1" />
                   Rapide & facile
                 </div>
               </div>
               
-              <div className="space-y-3 flex-grow flex flex-col justify-center">
-                <div 
-                  className="border-2 border-dashed border-[#68ccff] rounded-lg p-2 bg-gradient-to-br from-[#68ccff]/10 to-[#68ccff]/20 hover:from-[#68ccff]/20 hover:to-[#68ccff]/30 transition-all duration-300 cursor-pointer"
-                  onClick={handleUploadSuccess}
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-[#68ccff]/50 rounded-full flex items-center justify-center mr-3 text-[#106996] shadow-sm border-2 border-[#ebebd7]">
-                      <FaCloudUploadAlt className="w-5 h-5" />
+              <div className="flex-grow flex flex-col justify-center items-center">
+                <div className="text-center mb-4">
+                  <div className="flex items-center justify-center mb-2 space-x-4">
+                    <div className="flex items-center">
+                      <FaCloudUploadAlt className="text-[#25a1e1] w-5 h-5 mr-1" />
+                      <span className="text-sm font-medium">ou</span>
                     </div>
-                    
-                    <div className="flex-grow">
-                      <h4 className="text-sm font-bold text-[#106996]">Importer un fichier</h4>
-                      <p className="text-xs text-[#25a1e1]">
-                        PDF, Word, Images
-                      </p>
-                      
-                      {isUploading && (
-                        <div className="w-full mt-1">
-                          <div className="w-full bg-[#68ccff]/30 rounded-full h-1.5">
-                            <div className="bg-[#25a1e1] h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                          </div>
-                        </div>
-                      )}
+                    <div className="flex items-center">
+                      <FaCamera className="text-[#25a1e1] w-5 h-5 mr-1" />
                     </div>
                   </div>
+                  <p className="text-sm text-[#106996] mb-4">
+                    Glisse ou sélectionne ton cours
+                  </p>
                 </div>
                 
-                <div className="flex items-center">
-                  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#68ccff]/50 to-transparent"></div>
-                  <div className="px-2 py-0.5 bg-[#68ccff]/20 text-[#106996] rounded-full text-xs font-medium mx-2">OU</div>
-                  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#68ccff]/50 to-transparent"></div>
-                </div>
-                
-                <div 
-                  className="border-2 border-dashed border-[#68ccff] rounded-lg p-2 bg-gradient-to-br from-[#68ccff]/10 to-[#68ccff]/20 hover:from-[#68ccff]/20 hover:to-[#68ccff]/30 transition-all duration-300 cursor-pointer"
-                  onClick={handleUploadSuccess}
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-[#68ccff]/50 rounded-full flex items-center justify-center mr-3 text-[#106996] shadow-sm border-2 border-[#ebebd7]">
-                      <FaCamera className="w-5 h-5" />
+                {isUploading ? (
+                  <div className="w-full max-w-xs">
+                    <div className="w-full bg-[#68ccff]/30 rounded-full h-2">
+                      <div className="bg-[#25a1e1] h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                     </div>
-                    
-                    <div className="flex-grow">
-                      <h4 className="text-sm font-bold text-[#106996]">Prendre une photo</h4>
-                      <p className="text-xs text-[#25a1e1]">
-                        De ton cours ou tes notes
-                      </p>
-                      
-                      {isUploading && (
-                        <div className="w-full mt-1">
-                          <div className="w-full bg-[#68ccff]/30 rounded-full h-1.5">
-                            <div className="bg-[#25a1e1] h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-sm text-center text-[#106996] mt-2 font-medium">
+                      {uploadProgress === 100 ? 'Analyse terminée !' : `Analyse en cours... ${uploadProgress}%`}
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center">
+                    <button 
+                      className="bg-[#106996] text-[#ebebd7] font-bold py-3 px-6 rounded-xl hover:bg-[#0d5475] hover:scale-105 transition-all duration-300 shadow-md border border-[#106996]/70 hover:shadow-lg"
+                      onClick={handleUploadSuccess}
+                    >
+                      Juste ici !
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
+
+          {/* Bloc d'abonnement mobile */}
+          <div className="mt-2">
+            <SubscriptionBlock remainingCards={2} />
           </div>
         </div>
       </div>
     </div>
   );
   
-  // Interface desktop simplifiée
+  // Interface desktop réorganisée, sections empilées
   const DesktopView = () => (
-    <div className="h-[calc(100vh-24px)] mx-3 mt-3">
-      <div className="h-full bg-gradient-to-br from-[#68ccff]/10 via-[#ebebd7] to-[#68ccff]/20 rounded-2xl shadow-lg border-2 border-[#68ccff]/30 p-6 relative overflow-hidden">
-        {/* Éléments décoratifs cartoon */}
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-yellow-200 rounded-full opacity-30 animate-pulse"></div>
-        <div className="absolute top-1/3 -right-16 w-32 h-32 bg-pink-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: "1s" }}></div>
-        <div className="absolute -bottom-16 left-1/3 w-48 h-48 bg-[#68ccff]/60 rounded-full opacity-30 animate-pulse" style={{ animationDelay: "2s" }}></div>
-        
-        {/* Header avec mascotte */}
-        <div className="relative z-10 mb-8 flex justify-between items-center">
-          <div className="flex items-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#25a1e1] to-[#106996] rounded-xl flex items-center justify-center text-[#ebebd7] font-bold text-2xl shadow-md transform rotate-3 mr-4 border-2 border-[#ebebd7]">
-              F
+    <div className="flex flex-col w-full">
+      {/* Première section - Import de fichiers (100vh) */}
+      <section className="min-h-screen py-6 px-6">
+        <div className="h-full bg-gradient-to-br from-[#68ccff]/10 via-[#ebebd7] to-[#68ccff]/20 rounded-2xl shadow-lg border-2 border-[#68ccff]/30 p-6 relative overflow-hidden">
+          {/* Éléments décoratifs */}
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-yellow-200 rounded-full opacity-30 animate-pulse"></div>
+          <div className="absolute top-1/3 -right-16 w-32 h-32 bg-pink-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: "1s" }}></div>
+          
+          {/* Header avec titre */}
+          <div className="relative z-10 mb-8 flex justify-between">
+            <div className="flex items-center">
+              <div className="flex items-center">
+                <img src="/fayotlogo.png" alt="Logo Fayot" className="h-20 mr-4" />
+                <p className="text-[#106996] font-medium text-light italic">C'est le premier de la classe <br></br> qui t'aide à réviser</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-[#25a1e1] flex items-center">
-                <span className="mr-2">Fayot</span>
-                <FaBrain className="text-yellow-500 w-6 h-6 animate-pulse" />
-              </h1>
-              <p className="text-[#106996] font-medium">Ton partenaire d'études intelligent</p>
+
+            <div className="flex items-center bg-[#68ccff]/10 px-4 py-2 rounded-xl shadow border border-[#68ccff]/30">
+              <FaLightbulb className="text-yellow-500 w-5 h-5 mr-2" />
+              <p className="text-sm font-medium text-[#106996]">Crée des mémo cartes en un clic !</p>
             </div>
           </div>
+          
+          {/* Disposition réorganisée avec 60% gauche, 40% droite */}
+          <div className="w-full flex relative z-10 h-[calc(100%-8rem)]">
+            {/* Partie gauche - Colonnes divisées verticalement (60%) */}
+            <div className="w-3/5 pr-6 flex flex-col justify-between">
+              {/* Bulles d'explication (haut) - Simplifiées et améliorées */}
+              <div className="flex space-x-6 mb-6">
+                <div className="w-1/2 bg-[#ebebd7] p-5 rounded-2xl border-2 border-[#68ccff]/30 shadow-md relative flex items-center justify-center">
+                  <div className="absolute -left-4 -top-4 w-10 h-10 bg-[#25a1e1] rounded-full flex items-center justify-center text-[#ebebd7] font-bold text-xl shadow-md border-2 border-[#ebebd7]">
+                    1
+                  </div>
+                  <h2 className="text-xl font-medium text-[#106996] text-center px-2">
+                    Transforme ton cours en <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996]">mémo cartes</span>
+                  </h2>
+                </div>
+                
+                <div className="w-1/2 bg-[#ebebd7] p-5 rounded-2xl border-2 border-[#68ccff]/30 shadow-md relative flex items-center justify-center">
+                  <div className="absolute -left-4 -top-4 w-10 h-10 bg-[#25a1e1] rounded-full flex items-center justify-center text-[#ebebd7] font-bold text-xl shadow-md border-2 border-[#ebebd7]">
+                    2
+                  </div>
+                  <h2 className="text-xl font-medium text-[#106996] text-center px-2">
+                    Révise à l'aide de <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996]">QCM sur-mesure</span>
+                  </h2>
+                </div>
+              </div>
+              
+              {/* Section d'import (bas) - Version réorganisée */}
+              <div className="bg-[#ebebd7] p-5 rounded-2xl border-2 border-[#68ccff]/30 shadow-md relative flex flex-col overflow-hidden">
+                <div className="absolute top-0 right-0 bg-gradient-to-bl from-[#25a1e1] to-[#106996] text-[#ebebd7] py-1 px-3 rounded-bl-xl rounded-tr-xl text-sm font-bold">
+                  Facile et rapide !
+                </div>
+                
+                <h3 className="text-2xl font-semibold text-[#106996] mb-5 text-center mt-2">
+                  Importe ton cours
+                </h3>
+                
+                <div className="flex items-center justify-center mb-5">
+                  <div className="flex items-center justify-center p-3 bg-[#68ccff]/10 rounded-xl border border-[#68ccff]/30">
+                    <div className="flex flex-col items-center mx-3">
+                      <div className="w-12 h-12 bg-[#68ccff]/20 rounded-full flex items-center justify-center mb-2 shadow-sm">
+                        <FaCloudUploadAlt className="text-[#25a1e1] w-6 h-6" />
+                      </div>
+                      <span className="text-sm font-medium text-[#106996]">Upload</span>
+                    </div>
+                    <span className="text-md font-medium text-[#106996] mx-3">ou</span>
+                    <div className="flex flex-col items-center mx-3">
+                      <div className="w-12 h-12 bg-[#68ccff]/20 rounded-full flex items-center justify-center mb-2 shadow-sm">
+                        <FaCamera className="text-[#25a1e1] w-6 h-6" />
+                      </div>
+                      <span className="text-sm font-medium text-[#106996]">Photo</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-center text-[#106996] text-lg mb-5 font-medium">
+                  Glisse ou sélectionne ton cours
+                </p>
+                
+                {isUploading ? (
+                  <div className="w-full max-w-md mx-auto mb-4">
+                    <div className="w-full bg-[#68ccff]/30 rounded-full h-3">
+                      <div className="bg-[#25a1e1] h-3 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                    </div>
+                    <p className="text-sm text-center text-[#106996] mt-3 font-medium">
+                      {uploadProgress === 100 ? 'Analyse terminée !' : `Analyse en cours... ${uploadProgress}%`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <button 
+                      className="bg-[#106996] text-[#ebebd7] font-bold py-3 px-8 rounded-xl hover:bg-[#0d5475] hover:scale-105 transition-all duration-300 shadow-lg border border-[#106996]/70 hover:shadow-xl text-xl mb-2"
+                      onClick={handleUploadSuccess}
+                    >
+                      Juste ici !
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
-          <div className="flex items-center bg-[#68ccff]/10 px-4 py-2 rounded-xl shadow border border-[#68ccff]/30">
-            <FaLightbulb className="text-yellow-500 w-5 h-5 mr-2" />
-            <p className="text-sm font-medium text-[#106996]">Crée des mémocartes en un clic !</p>
+            {/* Partie droite - Abonnement (40%) */}
+            <div className="w-2/5 pl-6 flex flex-col justify-center">
+              <div className="bg-[#ebebd7] p-6 rounded-2xl border-2 border-[#68ccff]/30 shadow-md h-full flex items-center justify-center">
+                <div className="w-full h-full flex flex-col justify-center">
+                  {/* Version agrandie du SubscriptionBlock avec styles personnalisés */}
+                  <div className="rounded-xl bg-gradient-to-r from-[#106996] to-[#25a1e1] p-5 text-[#ebebd7] shadow-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <FaCrown className="w-6 h-6 text-yellow-400 mr-2" />
+                        <span className="font-semibold text-lg">Fayot Plus</span>
+                      </div>
+                      <div className="bg-[#ebebd7]/20 px-2 py-1 rounded-lg">
+                        <span className="font-bold text-yellow-300 text-lg">2/2</span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-base mb-4">
+                      Vous êtes limité à <span className="font-bold">2 mémo cartes</span>. Passez à Fayot Plus pour une création illimitée !
+                    </p>
+                    
+                    <div className="text-center text-2xl font-bold mb-3">9,99€<span className="text-base font-normal ml-1">/mois</span> <span className="text-base line-through opacity-75 ml-1">14,99€</span></div>
+                    
+                    <div className="bg-[#ebebd7]/10 rounded-lg p-3 mb-4">
+                      <ul className="space-y-2">
+                        <li className="flex items-center">
+                          <div className="mr-2 text-green-300">✓</div>
+                          <span>Mémo cartes illimitées</span>
+                        </li>
+                        <li className="flex items-center">
+                          <div className="mr-2 text-green-300">✓</div>
+                          <span>QCM personnalisés</span>
+                        </li>
+                        <li className="flex items-center">
+                          <div className="mr-2 text-green-300">✓</div>
+                          <span>Synchronisation multi-appareils</span>
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <button className="w-full bg-[#ebebd7] text-[#106996] rounded-lg py-3 font-bold text-lg hover:bg-[#ebebd7]/90 transition-colors hover:scale-105 transform duration-300 shadow-md">
+                      Débloquer l'illimité
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div className="flex flex-col lg:flex-row gap-8 relative z-10 h-[calc(100%-8rem)]">
-          {/* Left section - Mascot and info */}
-          <div className="w-full lg:w-1/2 pr-0 lg:pr-8">
-            <div className="relative bg-[#ebebd7] p-6 rounded-2xl shadow-md border-2 border-[#68ccff]/30 h-full transform hover:scale-[1.01] transition-all duration-300">
+      </section>
+
+      {/* Deuxième section - Informations et explications (100vh) - Version améliorée et simplifiée */}
+      <section className="min-h-screen py-6 px-6">
+        <div className="h-full bg-gradient-to-br from-[#68ccff]/10 via-[#ebebd7] to-[#68ccff]/20 rounded-2xl shadow-lg border-2 border-[#68ccff]/30 p-6 relative overflow-hidden">
+          {/* Éléments décoratifs différents pour cette section */}
+          <div className="absolute -bottom-16 left-1/3 w-48 h-48 bg-[#68ccff]/60 rounded-full opacity-30 animate-pulse" style={{ animationDelay: "2s" }}></div>
+          <div className="absolute top-1/4 -left-10 w-32 h-32 bg-green-200 rounded-full opacity-30 animate-pulse" style={{ animationDelay: "1.5s" }}></div>
+          
+          {/* Section d'informations - Prend toute la largeur - Copywriting amélioré */}
+          <div className="w-full relative z-10 h-full">
+            <div className="relative bg-[#ebebd7] p-8 rounded-2xl shadow-md border-2 border-[#68ccff]/30 h-full flex flex-col justify-center">
               {/* Mascotte character */}
               <div className="absolute -top-12 -right-6 w-24 h-24">
                 <div className="relative w-full h-full">
@@ -229,144 +326,81 @@ export const HomeComponent = () => {
                 </div>
               </div>
               
-              <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996] mb-4">
-                Transforme tes cours en mémocartes !
+              <h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996] mb-10">
+                Comment ça fonctionne
               </h2>
               
-              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
-                Améliore ta mémorisation et tes révisions. Plus besoin de passer des heures à créer des fiches, Fayot s'en occupe pour toi !
-              </p>
-              
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-[#68ccff]/10 p-3 rounded-xl border border-[#68ccff]/30 shadow-sm transform transition-transform hover:scale-105">
-                  <div className="flex items-center text-[#106996] font-bold mb-1">
-                    <FaRocket className="w-4 h-4 mr-2" />
-                    <span>Gain de temps</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+                <div className="bg-[#68ccff]/10 p-6 rounded-xl border border-[#68ccff]/30 shadow-md transform transition-transform hover:scale-[1.01]">
+                  <div className="flex items-center text-[#106996] font-bold mb-4">
+                    <BsCardHeading className="w-8 h-8 mr-4 text-[#25a1e1]" />
+                    <span className="text-2xl">Mémo cartes</span>
                   </div>
-                  <p className="text-sm text-[#106996]/80">Transforme ton cours en mémocartes en quelques secondes</p>
+                  <ul className="space-y-3 text-lg text-[#106996]">
+                    <li className="flex items-start">
+                      <div className="text-[#25a1e1] mr-2 font-bold">1.</div>
+                      <p>Donne moi tes cours (PDF, photo ou texte)</p>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="text-[#25a1e1] mr-2 font-bold">2.</div>
+                      <p>Moi, le Fayot, je vais extraire les concepts clés et créer des cartes recto-verso</p>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="text-[#25a1e1] mr-2 font-bold">3.</div>
+                      <p>Tu peux réviser tes mémo cartes partout, n'importe quand</p>
+                    </li>
+                  </ul>
                 </div>
                 
-                <div className="bg-green-50 p-3 rounded-xl border border-green-100 shadow-sm transform transition-transform hover:scale-105">
-                  <div className="flex items-center text-green-600 font-bold mb-1">
-                    <FaStar className="w-4 h-4 mr-2" />
-                    <span>Personnalisé</span>
+                <div className="bg-green-50 p-6 rounded-xl border border-green-100 shadow-md transform transition-transform hover:scale-[1.01]">
+                  <div className="flex items-center text-green-700 font-bold mb-4">
+                    <FaQuestionCircle className="w-8 h-8 mr-4 text-green-600" />
+                    <span className="text-2xl">QCM personnalisés</span>
                   </div>
-                  <p className="text-sm text-green-700">Des mémocartes adaptées à ton cours et à ta façon d'apprendre</p>
+                  <ul className="space-y-3 text-lg text-green-700">
+                    <li className="flex items-start">
+                      <div className="text-green-600 mr-2 font-bold">1.</div>
+                      <p>Je te prépare des QCM sur-mesure</p>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="text-green-600 mr-2 font-bold">2.</div>
+                      <p>J'adapte les questions à ton niveau de connaissance</p>
+                    </li>
+                    <li className="flex items-start">
+                      <div className="text-green-600 mr-2 font-bold">3.</div>
+                      <p>Tu peux réviser tes QCM partout, n'importe quand</p>
+                    </li>
+                  </ul>
                 </div>
               </div>
               
-              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 mt-4 shadow-sm">
-                <div className="flex items-start">
-                  <FaBrain className="text-yellow-600 w-5 h-5 mr-3 flex-shrink-0 mt-1" />
-                  <p className="text-yellow-800">
-                    <span className="font-bold">Le savais-tu ?</span> 80% des étudiants améliorent leur rétention d'information grâce aux mémocartes. Fayot les génère automatiquement à partir de ton cours !
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right section - Upload options */}
-          <div className="w-full lg:w-1/2 flex flex-col">
-            <div className="bg-[#ebebd7] p-4 rounded-2xl border-2 border-[#68ccff]/30 shadow-md flex-grow relative h-full flex flex-col overflow-hidden">
-              <div className="absolute top-0 right-0 bg-gradient-to-bl from-[#25a1e1] to-[#106996] text-[#ebebd7] py-1 px-3 rounded-bl-xl rounded-tr-xl text-sm font-medium">
-                Facile et rapide !
-              </div>
-              
-              <h3 className="text-xl font-bold text-gray-800 mb-4 mt-3 text-center">
-                Importe ton cours
-              </h3>
-              
-              <div className="space-y-3 flex-grow flex flex-col justify-center overflow-auto">
-                <div 
-                  className="border-2 border-dashed border-[#68ccff] rounded-xl p-3 lg:p-4 bg-gradient-to-br from-[#68ccff]/10 to-[#68ccff]/20 hover:from-[#68ccff]/20 hover:to-[#68ccff]/30 transition-all duration-300 cursor-pointer shadow-md"
-                  onClick={handleUploadSuccess}
-                >
-                  <div className="flex flex-col sm:flex-row items-center">
-                    <div className="w-14 h-14 lg:w-16 lg:h-16 bg-[#68ccff]/50 rounded-full flex items-center justify-center mb-2 sm:mb-0 sm:mr-4 text-[#106996] shadow-md border-2 border-[#ebebd7] flex-shrink-0">
-                      <FaCloudUploadAlt className="w-7 h-7 lg:w-8 lg:h-8" />
-                    </div>
-                    
-                    <div className="flex-grow text-center sm:text-left">
-                      <h4 className="text-lg font-bold text-[#106996] mb-1">Importer un fichier</h4>
-                      <p className="text-[#25a1e1] text-sm mb-2">
-                        Glisse ou sélectionne un document
-                      </p>
-                      
-                      {isUploading ? (
-                        <div className="w-full">
-                          <div className="w-full bg-[#68ccff]/30 rounded-full h-2">
-                            <div className="bg-[#25a1e1] h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                          </div>
-                          <p className="text-xs text-center text-[#106996] mt-1 font-medium">
-                            {uploadProgress === 100 ? 'Analyse terminée !' : `Analyse en cours... ${uploadProgress}%`}
-                          </p>
-                        </div>
-                      ) : (
-                        <button 
-                          className="bg-[#25a1e1] text-[#ebebd7] font-medium py-2 px-4 rounded-lg hover:bg-[#106996] hover:scale-105 transition-all duration-300 shadow-md border border-[#25a1e1]/70 hover:shadow-lg text-sm"
-                          onClick={handleUploadSuccess}
-                        >
-                          Sélectionner un fichier
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center">
-                  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#68ccff]/50 to-transparent"></div>
-                  <div className="px-3 py-1 bg-[#68ccff]/20 text-[#106996] rounded-full text-xs font-bold mx-4">OU</div>
-                  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-[#68ccff]/50 to-transparent"></div>
-                </div>
-                
-                <div 
-                  className="border-2 border-dashed border-[#68ccff] rounded-xl p-3 lg:p-4 bg-gradient-to-br from-[#68ccff]/10 to-[#68ccff]/20 hover:from-[#68ccff]/20 hover:to-[#68ccff]/30 transition-all duration-300 cursor-pointer shadow-md"
-                  onClick={handleUploadSuccess}
-                >
-                  <div className="flex flex-col sm:flex-row items-center">
-                    <div className="w-14 h-14 lg:w-16 lg:h-16 bg-[#68ccff]/50 rounded-full flex items-center justify-center mb-2 sm:mb-0 sm:mr-4 text-[#106996] shadow-md border-2 border-[#ebebd7] flex-shrink-0">
-                      <FaCamera className="w-7 h-7 lg:w-8 lg:h-8" />
-                    </div>
-                    
-                    <div className="flex-grow text-center sm:text-left">
-                      <h4 className="text-lg font-bold text-[#106996] mb-1">Prendre une photo</h4>
-                      <p className="text-[#25a1e1] text-sm mb-2">
-                        Photographie ton cours ou tes notes
-                      </p>
-                      
-                      {isUploading ? (
-                        <div className="w-full">
-                          <div className="w-full bg-[#68ccff]/30 rounded-full h-2">
-                            <div className="bg-[#25a1e1] h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                          </div>
-                          <p className="text-xs text-center text-[#106996] mt-1 font-medium">
-                            {uploadProgress === 100 ? 'Analyse terminée !' : `Analyse en cours... ${uploadProgress}%`}
-                          </p>
-                        </div>
-                      ) : (
-                        <button 
-                          className="bg-[#25a1e1] text-[#ebebd7] font-medium py-2 px-4 rounded-lg hover:bg-[#106996] hover:scale-105 transition-all duration-300 shadow-md border border-[#25a1e1]/70 hover:shadow-lg text-sm"
-                          onClick={handleUploadSuccess}
-                        >
-                          Ouvrir l'appareil photo
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200 shadow-md max-w-5xl mx-auto">
+                <h3 className="text-2xl font-bold text-yellow-800 mb-4 flex items-center">
+                  <FaBrain className="text-yellow-600 w-7 h-7 mr-3" />
+                  Pourquoi ça marche
+                </h3>
+                <p className="text-xl text-yellow-700 font-medium">
+                Les études montrent que la combinaison de mémo cartes et QCM améliore la mémorisation de 80%. Moi, le Fayot, je vais analyser ton cours pour créer des mémo cartes et des QCM parfaitement adaptés à ton contenu.   <span className="font-bold"> Fini les révisions stressantes à la dernière minute !</span>
+                </p>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
   
   return (
-    <div className='flex flex-col md:flex-row h-screen bg-gradient-to-br from-[#68ccff]/20 via-[#ebebd7] to-[#68ccff]/10 overflow-hidden'>
-      {!isMobile && <NavBarComponent/>}
-      <div className="flex-1 overflow-hidden">
+    <div className='flex md:flex-row min-h-screen bg-gradient-to-br from-[#68ccff]/20 via-[#ebebd7] to-[#68ccff]/10'>
+      {/* Navbar container - rendu sticky */}
+      {!isMobile && (
+        <div className="hidden md:block w-64 h-screen sticky top-0 left-0 z-50">
+          <NavBarComponent />
+        </div>
+      )}
+      
+      {/* Contenu principal avec défilement */}
+      <main className="flex-1 overflow-y-auto">
         {isMobile ? <MobileView /> : <DesktopView />}
         
         {/* Menu déroulant mobile */}
@@ -379,7 +413,7 @@ export const HomeComponent = () => {
             <div className="fixed top-0 right-0 h-full w-72 bg-[#ebebd7] shadow-xl z-40 rounded-l-2xl border-l-2 border-[#68ccff]/30 transform transition-all duration-300 ease-in-out translate-x-0">
               <div className="p-5 pt-16">
                 <div className='mb-6 flex items-center justify-center'>
-                  <h1 className='text-xl text-[#25a1e1] font-bold'>Fayot</h1>
+                  <img src="/fayotlogo.png" alt="Logo Fayot" className="h-10" />
                 </div>
                 
                 <div className='flex flex-col space-y-3 mt-4'>
@@ -396,7 +430,7 @@ export const HomeComponent = () => {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

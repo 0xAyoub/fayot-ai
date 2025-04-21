@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,52 +23,144 @@
   font-style: normal;
 } */
 
-
-
-
-/* Utiliser Tailwind avec les classes personnalisées */
-/* body {
-  font-family: 'Gamma-400', sans-serif;
-  letter-spacing: -0.01em;
-  font-weight: 300;
+/* Définitions de police Quicksand pour tout le site */
+:root {
+  --font-family-main: 'Quicksand', sans-serif;
 }
 
-h4, h5, h6 {
-  font-family: 'Gamma-400', sans-serif;
-  font-size: 2.5em;
-  letter-spacing: -0.005em;
-
-}
-
-h1, h2, h3 {
-  font-family: 'Gamma-540', sans-serif;
-  font-size: 2.5em;
-  letter-spacing: -0.005em;
-
-}*/
-
-
+/* Style de base pour le corps du texte - poids léger */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: var(--font-family-main);
   letter-spacing: -0.01em;
   font-weight: 300;
 }
 
-h4, h5, h6 {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-  font-size: 2.5em;
-  letter-spacing: -0.005em;
+/* Style pour le texte normal */
+p, span, div, li, a {
+  font-family: var(--font-family-main);
+  font-weight: 400;
 }
 
-h1, h2, h3 {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+/* Style pour le texte en gras */
+strong, b {
+  font-family: var(--font-family-main);
+  font-weight: 700;
+}
+
+/* Style pour le texte en italique */
+em, i {
+  font-family: var(--font-family-main);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Titres principaux avec poids bold et taille différenciée */
+h1 {
+  font-family: var(--font-family-main);
   font-size: 2.5em;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+h2 {
+  font-family: var(--font-family-main);
+  font-size: 2em;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+h3 {
+  font-family: var(--font-family-main);
+  font-size: 1.75em;
   letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+/* Titres secondaires avec poids moyen */
+h4 {
+  font-family: var(--font-family-main);
+  font-size: 1.5em;
+  letter-spacing: -0.005em;
+  font-weight: 600;
+}
+
+h5 {
+  font-family: var(--font-family-main);
+  font-size: 1.25em;
+  letter-spacing: -0.005em;
   font-weight: 500;
-} 
+}
 
+h6 {
+  font-family: var(--font-family-main);
+  font-size: 1.1em;
+  letter-spacing: -0.005em;
+  font-weight: 500;
+}
 
+/* Style pour les petits textes - plus léger */
+.text-sm, small, .small, .text-xs {
+  font-family: var(--font-family-main);
+  font-weight: 300;
+}
 
+/* Style pour les textes de boutons et calls-to-action - plus bold */
+button, .btn, .cta {
+  font-family: var(--font-family-main);
+  font-weight: 700;
+}
+
+/* Classes utilitaires pour la typographie */
+.text-bold {
+  font-weight: 700 !important;
+}
+
+.text-semibold {
+  font-weight: 600 !important;
+}
+
+.text-medium {
+  font-weight: 500 !important;
+}
+
+.text-regular {
+  font-weight: 400 !important;
+}
+
+.text-light {
+  font-weight: 300 !important;
+}
+
+.text-italic {
+  font-style: italic !important;
+}
+
+/* Conservation des styles de navigation existants */
 .nav-container:hover .hidden {
   display: flex; /* Montre le texte quand la barre est survolée */
+}
+
+/* Style pour les étiquettes et informations importantes */
+.label, .badge, .tag {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Styles pour le texte de mise en évidence */
+.highlight, .featured-text {
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* Styles pour les citations */
+blockquote, .quote {
+  font-style: italic;
+  font-weight: 400;
+  padding-left: 1rem;
+  border-left: 3px solid #68ccff;
+}
+
+/* Amélioration de la lisibilité des paragraphes */
+p {
+  line-height: 1.5;
 }

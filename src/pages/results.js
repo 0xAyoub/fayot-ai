@@ -5,7 +5,7 @@ import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { NavBarComponent } from '../../components/NavBarComponent';
 
-// Exemples de mémocartes générées
+// Exemples de mémo cartes générées
 const SAMPLE_CARDS = [
   {
     id: 1,
@@ -81,7 +81,7 @@ export default function Results() {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // Gestion du swipe pour les mémocartes
+  // Gestion du swipe pour les mémo cartes
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
@@ -182,7 +182,7 @@ export default function Results() {
             <FaArrowLeft className="w-3 h-3" />
           </button>
           <h1 className="text-lg font-bold text-[#25a1e1] flex items-center">
-            <span className="mr-2">Mémocartes</span>
+            <span className="mr-2">mémo cartes</span>
             <FaBrain className="text-yellow-500 animate-pulse w-4 h-4" />
           </h1>
           {/* Barre de progression intégrée */}
@@ -208,15 +208,15 @@ export default function Results() {
         {loadingCards ? (
           <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col items-center justify-center p-4">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#25a1e1] mb-3"></div>
-            <p className="text-gray-700 font-medium">Création de tes mémocartes...</p>
-            <p className="text-xs text-gray-500 mt-1">Le Fayot prépare des mémocartes pour ton cours</p>
+            <p className="text-gray-700 font-semibold">Création de tes mémo cartes...</p>
+            <p className="text-xs text-gray-500 mt-1 font-light">Le Fayot prépare des mémo cartes pour ton cours</p>
           </div>
         ) : (
           <>
             {showDownload ? (
               <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col p-4">
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold text-gray-800">Télécharge tes mémocartes</h2>
+                  <h2 className="text-lg font-bold text-gray-800">Télécharge tes mémo cartes</h2>
                   <button 
                     onClick={() => setShowDownload(false)}
                     className="text-[#25a1e1] text-sm bg-[#68ccff]/10 px-2 py-1 rounded-lg hover:bg-[#68ccff]/20"
@@ -227,17 +227,17 @@ export default function Results() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                   <div className="bg-[#68ccff]/10 p-3 rounded-xl border border-[#68ccff]/30 hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] cursor-pointer">
-                    <h3 className="font-medium text-gray-800 mb-1">Format PDF</h3>
-                    <p className="text-xs text-gray-500 mb-2">Pour imprimer ou partager facilement</p>
-                    <button className="w-full bg-[#25a1e1] text-[#ebebd7] text-sm py-1.5 rounded-lg hover:bg-[#106996] transition-colors duration-300 flex items-center justify-center">
+                    <h3 className="font-semibold text-gray-800 mb-1">Format PDF</h3>
+                    <p className="text-xs text-gray-500 mb-2 font-light">Pour imprimer ou partager facilement</p>
+                    <button className="w-full bg-[#25a1e1] text-[#ebebd7] text-sm py-1.5 rounded-lg hover:bg-[#106996] transition-colors duration-300 flex items-center justify-center font-bold">
                       <FaDownload className="w-3 h-3 mr-1" /> Télécharger PDF
                     </button>
                   </div>
                   
                   <div className="bg-[#68ccff]/10 p-3 rounded-xl border border-[#68ccff]/30 hover:shadow-md transition-all duration-300 transform hover:scale-[1.01] cursor-pointer">
-                    <h3 className="font-medium text-gray-800 mb-1">Format Images</h3>
-                    <p className="text-xs text-gray-500 mb-2">Pour partager sur les réseaux sociaux</p>
-                    <button className="w-full bg-[#106996] text-[#ebebd7] text-sm py-1.5 rounded-lg hover:bg-[#25a1e1] transition-colors duration-300 flex items-center justify-center">
+                    <h3 className="font-semibold text-gray-800 mb-1">Format Images</h3>
+                    <p className="text-xs text-gray-500 mb-2 font-light">Pour partager sur les réseaux sociaux</p>
+                    <button className="w-full bg-[#106996] text-[#ebebd7] text-sm py-1.5 rounded-lg hover:bg-[#25a1e1] transition-colors duration-300 flex items-center justify-center font-bold">
                       <FaDownload className="w-3 h-3 mr-1" /> Télécharger Images
                     </button>
                   </div>
@@ -245,7 +245,7 @@ export default function Results() {
               </div>
             ) : (
               <>
-                {/* Mémocartes maximisées */}
+                {/* mémo cartes maximisées */}
                 <div className="flex-grow flex items-center justify-center">
                   <div className="perspective-1000 w-full h-[70vh] max-w-xl mx-auto"
                       onTouchStart={onTouchStart}
@@ -270,7 +270,7 @@ export default function Results() {
                         <div className="flex-grow flex items-center justify-center overflow-auto">
                           <h3 className="text-xl font-bold text-gray-800 text-center">{currentCard.question}</h3>
                         </div>
-                        <div className="text-center text-gray-500 text-xs mt-2">
+                        <div className="text-center text-gray-500 text-xs mt-2 font-light italic">
                           Tape pour voir la réponse
                         </div>
                       </div>
@@ -287,9 +287,9 @@ export default function Results() {
                           </button>
                         </div>
                         <div className="flex-grow overflow-auto p-1">
-                          <p className="text-gray-700">{currentCard.answer}</p>
+                          <p className="text-gray-700 font-light">{currentCard.answer}</p>
                         </div>
-                        <div className="text-center text-gray-500 text-xs mt-2">
+                        <div className="text-center text-gray-500 text-xs mt-2 font-light italic">
                           Tape pour revenir à la question
                         </div>
                       </div>
@@ -332,14 +332,14 @@ export default function Results() {
                       onClick={restartCards}
                     >
                       <FaSync className="w-3 h-3 mr-1.5" />
-                      Recommencer
+                      <span className="font-semibold">Recommencer</span>
                     </button>
                     <button 
                       onClick={() => setShowDownload(true)}
                       className="bg-[#25a1e1] text-[#ebebd7] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md hover:bg-[#106996]"
                     >
                       <FaDownload className="w-3 h-3 mr-1.5" />
-                      Télécharger
+                      <span className="font-bold">Télécharger</span>
                     </button>
                   </div>
                 </div>
@@ -365,7 +365,7 @@ export default function Results() {
             <span className="text-sm font-medium">Retour</span>
           </button>
           <h1 className="text-xl font-bold text-[#25a1e1] flex items-center">
-            <span className="mr-2">Mémocartes</span>
+            <span className="mr-2">mémo cartes</span>
             <FaBrain className="text-yellow-500 animate-pulse w-5 h-5" />
           </h1>
           <div className="ml-4 bg-[#68ccff]/10 rounded-full px-3 py-1 flex items-center">
@@ -407,12 +407,12 @@ export default function Results() {
           {loadingCards ? (
             <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col items-center justify-center p-4">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#25a1e1] mb-3"></div>
-              <p className="text-gray-700 font-medium">Création de tes mémocartes...</p>
-              <p className="text-xs text-gray-500 mt-1">Le Fayot prépare des mémocartes pour ton cours</p>
+              <p className="text-gray-700 font-medium">Création de tes mémo cartes...</p>
+              <p className="text-xs text-gray-500 mt-1">Le Fayot prépare des mémo cartes pour ton cours</p>
             </div>
           ) : (
             <div className="flex-grow flex flex-col bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 overflow-hidden">
-              {/* Mémocartes */}
+              {/* mémo cartes */}
               <div className="flex-grow flex items-center justify-center p-4">
                 <div className="perspective-1000 w-full max-w-2xl h-[55vh]"
                     onTouchStart={onTouchStart}
