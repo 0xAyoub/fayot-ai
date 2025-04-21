@@ -170,10 +170,7 @@ export const HomeComponent = () => {
               </div>
             </div>
 
-            <div className="flex items-center bg-[#68ccff]/10 px-4 py-2 rounded-xl shadow border border-[#68ccff]/30">
-              <FaLightbulb className="text-yellow-500 w-5 h-5 mr-2" />
-              <p className="text-sm font-medium text-[#106996]">Crée des mémo cartes en un clic !</p>
-            </div>
+        
           </div>
           
           {/* Disposition réorganisée avec 60% gauche, 40% droite */}
@@ -264,7 +261,7 @@ export const HomeComponent = () => {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <FaCrown className="w-6 h-6 text-yellow-400 mr-2" />
-                        <span className="font-semibold text-lg">Fayot Plus</span>
+                        <span className="font-semibold text-lg">Abonnement</span>
                       </div>
                       <div className="bg-[#ebebd7]/20 px-2 py-1 rounded-lg">
                         <span className="font-bold text-yellow-300 text-lg">2/2</span>
@@ -272,7 +269,7 @@ export const HomeComponent = () => {
                     </div>
                     
                     <p className="text-base mb-4">
-                      Vous êtes limité à <span className="font-bold">2 mémo cartes</span>. Passez à Fayot Plus pour une création illimitée !
+                      Vous êtes limité à <span className="font-bold">2 mémo cartes</span>. Passez à l'abonnement pour une création illimitée !
                     </p>
                     
                     <div className="text-center text-2xl font-bold mb-3">9,99€<span className="text-base font-normal ml-1">/mois</span> <span className="text-base line-through opacity-75 ml-1">14,99€</span></div>
@@ -327,7 +324,7 @@ export const HomeComponent = () => {
               </div>
               
               <h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#25a1e1] to-[#106996] mb-10">
-                Comment ça fonctionne
+                Comment ça fonctionne ?
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
@@ -376,8 +373,7 @@ export const HomeComponent = () => {
               
               <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200 shadow-md max-w-5xl mx-auto">
                 <h3 className="text-2xl font-bold text-yellow-800 mb-4 flex items-center">
-                  <FaBrain className="text-yellow-600 w-7 h-7 mr-3" />
-                  Pourquoi ça marche
+                  Pourquoi ça marche ?
                 </h3>
                 <p className="text-xl text-yellow-700 font-medium">
                 Les études montrent que la combinaison de mémo cartes et QCM améliore la mémorisation de 80%. Moi, le Fayot, je vais analyser ton cours pour créer des mémo cartes et des QCM parfaitement adaptés à ton contenu.   <span className="font-bold"> Fini les révisions stressantes à la dernière minute !</span>

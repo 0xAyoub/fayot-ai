@@ -183,7 +183,6 @@ export default function Results() {
           </button>
           <h1 className="text-lg font-bold text-[#25a1e1] flex items-center">
             <span className="mr-2">mémo cartes</span>
-            <FaBrain className="text-yellow-500 animate-pulse w-4 h-4" />
           </h1>
           {/* Barre de progression intégrée */}
           <div className="ml-3 flex items-center">
@@ -366,7 +365,6 @@ export default function Results() {
           </button>
           <h1 className="text-xl font-bold text-[#25a1e1] flex items-center">
             <span className="mr-2">mémo cartes</span>
-            <FaBrain className="text-yellow-500 animate-pulse w-5 h-5" />
           </h1>
           <div className="ml-4 bg-[#68ccff]/10 rounded-full px-3 py-1 flex items-center">
             <span className="text-xs font-medium text-[#106996]">{router.query.cardCount || memoCards.length} cartes générées</span>

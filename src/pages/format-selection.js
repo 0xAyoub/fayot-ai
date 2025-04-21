@@ -118,7 +118,6 @@ export default function FormatSelection() {
       <div className="overflow-auto flex-grow mb-2 space-y-2">
         {/* Explication compacte */}
         <div className="bg-[#68ccff]/10 p-2 rounded-xl border border-[#68ccff]/30 flex items-center">
-          <FaBrain className="text-[#25a1e1] w-4 h-4 mr-2 flex-shrink-0" />
           <p className="text-xs text-[#106996] font-medium">Le Fayot va créer tes mémo cartes <span className="text-semibold">personnalisées</span></p>
         </div>
         
@@ -265,7 +264,6 @@ export default function FormatSelection() {
         </button>
         <h1 className="text-xl font-bold text-[#25a1e1] flex items-center">
           <span className="mr-2">Configuration</span>
-          <FaBrain className="text-yellow-500 animate-pulse w-5 h-5" />
         </h1>
       </div>
       
