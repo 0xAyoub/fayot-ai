@@ -5,6 +5,7 @@ import { BsCardHeading, BsQuestionCircleFill } from 'react-icons/bs';
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { NavBarComponent } from '../../components/NavBarComponent';
+import { withAuth } from '../hoc/withAuth';
 
 // Déplacer la fonction getFileIcon en dehors de FormatSelection
 const getFileIcon = (type) => {
@@ -18,7 +19,7 @@ const getFileIcon = (type) => {
   }
 };
 
-export default function FormatSelection() {
+function FormatSelection({ user }) {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -470,3 +471,5 @@ export default function FormatSelection() {
     </div>
   );
 }
+
+export default withAuth(FormatSelection);

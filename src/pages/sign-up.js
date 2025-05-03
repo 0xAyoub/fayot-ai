@@ -21,7 +21,6 @@ export default function SignUp() {
 
   return (
     <div className='flex flex-col md:flex-row h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 overflow-hidden'>
-      {!isMobile && <NavBarComponent/>}
       <div className="flex-1 overflow-auto">
         <SignUpComponent />
       </div>

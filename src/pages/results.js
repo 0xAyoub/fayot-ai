@@ -4,6 +4,7 @@ import { FaArrowLeft, FaCheck, FaRedo, FaDownload, FaShareAlt, FaMagic, FaTrophy
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { NavBarComponent } from '../../components/NavBarComponent';
+import { withAuth } from '../hoc/withAuth';
 
 // Exemples de mémo cartes générées
 const SAMPLE_CARDS = [
@@ -34,7 +35,7 @@ const SAMPLE_CARDS = [
   }
 ];
 
-export default function Results() {
+function Results({ user }) {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -584,4 +585,6 @@ export default function Results() {
       </div>
     </div>
   );
-} 
+}
+
+export default withAuth(Results); 

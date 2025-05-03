@@ -1,6 +1,8 @@
-import { FaHome, FaBook, FaBookmark, FaUserAlt, FaCog, FaBars, FaCrown } from 'react-icons/fa';
+import { FaHome, FaBook, FaBookmark, FaUserAlt, FaCog, FaBars, FaCrown, FaSignOutAlt } from 'react-icons/fa';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '../src/utils/supabaseClient';
 
 export const SubscriptionBlock = ({remainingCards = 2}) => (
     <div className="rounded-xl bg-gradient-to-r from-[#106996] to-[#25a1e1] p-4 text-[#ebebd7] shadow-lg">
@@ -29,6 +31,7 @@ export const NavBarComponent = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [remainingCards, setRemainingCards] = useState(2); // Nombre de mémo cartes restantes
+    const router = useRouter();
     
     // Check if we're on mobile
     useEffect(() => {
@@ -46,6 +49,11 @@ export const NavBarComponent = () => {
     
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
+    };
+   
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/sign-in');
     };
    
     // Mobile top bar only
@@ -98,7 +106,7 @@ export const NavBarComponent = () => {
                                     </Link>
                                     
                                     <Link 
-                                        href="/mes-cours" 
+                                        href="/my-courses" 
                                         className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                                         onClick={() => setIsMenuOpen(false)}
                                     >
@@ -107,12 +115,21 @@ export const NavBarComponent = () => {
                                     </Link>
                                     
                                     <Link 
-                                        href="/mes-cartes" 
+                                        href="/my-cards" 
                                         className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
                                         <span className='ml-3 text-[16px] font-medium'>Mes cartes mémos</span>
+                                    </Link>
+
+                                    <Link 
+                                        href="/my-qcm" 
+                                        className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
+                                        <span className='ml-3 text-[16px] font-medium'>Mes QCMs</span>
                                     </Link>
                                 </div>
                                 
@@ -142,6 +159,9 @@ export const NavBarComponent = () => {
                                         <FaCog className="w-5 h-5 text-gray-600" />
                                         <span className='ml-3 text-[16px] font-medium text-gray-700'>Paramètres</span>
                                     </Link>
+                                    <button onClick={handleLogout} className='flex items-center w-full rounded-xl px-4 py-3 transition-all bg-red-50 hover:bg-red-100 hover:scale-105 text-red-600 font-semibold'>
+                                        <FaSignOutAlt className="w-5 h-5 mr-3" /> Se déconnecter
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -174,7 +194,7 @@ export const NavBarComponent = () => {
                     </Link>
 
                     <Link 
-                        href="/mes-cours" 
+                        href="/my-courses" 
                         className={`flex items-center w-full rounded-xl px-4 py-2.5 transition-all hover:bg-[#68ccff]/10 hover:scale-105`}
                     >
                         <FaBook className="w-5 h-5 text-[#25a1e1]" />
@@ -182,7 +202,7 @@ export const NavBarComponent = () => {
                     </Link>
                     
                     <Link 
-                        href="/mes-cartes" 
+                        href="/my-cards" 
                         className={`flex items-center w-full rounded-xl px-4 py-2.5 transition-all hover:bg-[#68ccff]/10 hover:scale-105`}
                     >
                         <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
@@ -190,7 +210,7 @@ export const NavBarComponent = () => {
                     </Link>
 
                     <Link 
-                        href="/mes-cartes" 
+                        href="/my-qcm" 
                         className={`flex items-center w-full rounded-xl px-4 py-2.5 transition-all hover:bg-[#68ccff]/10 hover:scale-105`}
                     >
                         <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
@@ -218,6 +238,9 @@ export const NavBarComponent = () => {
                         <FaCog className="w-5 h-5 text-gray-600" />
                         <span className='ml-3 text-[16px] font-medium text-gray-700'>Paramètres</span>
                     </Link>
+                    <button onClick={handleLogout} className='flex items-center w-full rounded-xl px-4 py-2.5 transition-all bg-red-50 hover:bg-red-100 hover:scale-105 text-red-600 font-semibold'>
+                        <FaSignOutAlt className="w-5 h-5 mr-3" /> Se déconnecter
+                    </button>
                 </div>
             </div>
         </div>

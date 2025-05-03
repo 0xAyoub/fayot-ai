@@ -21,45 +21,32 @@ export const SignUpComponent = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    
+    setNotification(null);
     if (password !== confirmPassword) {
-      setNotification({
-        type: 'error',
-        message: 'Passwords do not match'
-      });
+      setNotification({ type: 'error', message: 'Les mots de passe ne correspondent pas.' });
       return;
     }
-    
     setLoading(true);
-    const { user, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          firstName,
-          lastName
-        }
+        data: { firstName, lastName }
       }
     });
     if (error) {
-      setNotification({
-        type: 'error',
-        message: error.message
-      });
+      setNotification({ type: 'error', message: error.message });
     } else {
-      setNotification({
-        type: 'success',
-        message: "Registration successful! Let's see pricing now."
-      });
+      setNotification({ type: 'success', message: "Inscription réussie ! Redirection vers la page d'accueil..." });
       setTimeout(() => {
-        router.push('/pricing');
-      }, 2000);
+        router.push('/');
+      }, 1500);
     }
     setLoading(false);
   };
 
-  return(
-    <section className='flex h-screen justify-center'>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#68ccff]/10 via-[#ebebd7] to-[#68ccff]/10">
       {notification && (
         <NotificationComponent
           type={notification.type}
@@ -67,96 +54,104 @@ export const SignUpComponent = () => {
           onClose={() => setNotification(null)}
         />
       )}
-      <div className="flex flex-col bg-white w-1/2 justify-center items-left p-20">
-        <div className='mb-8'>
-          <h3 className="text-black">Create an account 🚀</h3>
-        </div>
-
-        <form onSubmit={handleSignUp} className="w-full max-w-lg">
-          <div className="mb-4">
-            <div className='flex gap-3'>
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-[#68ccff]/30 flex flex-col md:flex-row overflow-hidden">
+        {/* Colonne gauche : formulaire */}
+        <div className="flex-1 p-8 flex flex-col justify-center">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold text-[#106996] mb-2">Créer un compte</h2>
+            <p className="text-[#106996]/80 text-base">Rejoins la communauté Fayot et commence à réviser efficacement !</p>
+          </div>
+          <form className="space-y-6" onSubmit={handleSignUp}>
+            <div className="flex gap-3">
               <input
                 type="text"
                 name="firstname"
-                placeholder="First name"
+                placeholder="Prénom"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="appearance-none border rounded-md w-full py-5 px-6 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                required
+                className="w-1/2 px-5 py-4 rounded-xl border border-[#68ccff]/30 focus:border-[#25a1e1] focus:ring-2 focus:ring-[#68ccff]/20 text-[#106996] bg-[#f8fafc] placeholder-[#68ccff]/60 shadow-sm transition"
+              />
               <input
                 type="text"
                 name="lastname"
-                placeholder="Last name"
+                placeholder="Nom"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="appearance-none border rounded-md w-full py-5 px-6 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                required
+                className="w-1/2 px-5 py-4 rounded-xl border border-[#68ccff]/30 focus:border-[#25a1e1] focus:ring-2 focus:ring-[#68ccff]/20 text-[#106996] bg-[#f8fafc] placeholder-[#68ccff]/60 shadow-sm transition"
+              />
             </div>
-          </div>
-
-          <div className="mb-4">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none border rounded-md w-full py-5 px-6 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-          </div>
-          <div className="mb-6">
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Adresse e-mail"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-5 py-4 rounded-xl border border-[#68ccff]/30 focus:border-[#25a1e1] focus:ring-2 focus:ring-[#68ccff]/20 text-[#106996] bg-[#f8fafc] placeholder-[#68ccff]/60 shadow-sm transition"
+              />
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Password"
+                placeholder="Mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none border rounded-md w-full py-5 px-6 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                required
+                className="w-full px-5 py-4 rounded-xl border border-[#68ccff]/30 focus:border-[#25a1e1] focus:ring-2 focus:ring-[#68ccff]/20 text-[#106996] bg-[#f8fafc] placeholder-[#68ccff]/60 shadow-sm transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#68ccff] hover:text-[#25a1e1]"
+                tabIndex={-1}
+                aria-label="Afficher ou masquer le mot de passe"
               >
                 {showPassword ? <GoEyeClosed className="w-5 h-5" /> : <GoEye className="w-5 h-5" />}
               </button>
             </div>
-          </div>
-          <div className="mb-6">
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="Confirm Password"
+                placeholder="Confirmer le mot de passe"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="appearance-none border rounded-md w-full py-5 px-6 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                required
+                className="w-full px-5 py-4 rounded-xl border border-[#68ccff]/30 focus:border-[#25a1e1] focus:ring-2 focus:ring-[#68ccff]/20 text-[#106996] bg-[#f8fafc] placeholder-[#68ccff]/60 shadow-sm transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#68ccff] hover:text-[#25a1e1]"
+                tabIndex={-1}
+                aria-label="Afficher ou masquer le mot de passe"
               >
                 {showPassword ? <GoEyeClosed className="w-5 h-5" /> : <GoEye className="w-5 h-5" />}
               </button>
             </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <button type="submit" disabled={loading}  className="bg-autocallblue text-white py-4 px-6 rounded-md focus:outline-none focus:shadow-outline">
-              Get started
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#106996] text-[#ebebd7] font-bold py-3 rounded-xl shadow-md hover:bg-[#0d5475] hover:scale-105 transition-all duration-300 border border-[#106996]/70 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Inscription...' : 'Créer mon compte'}
             </button>
-            <p>Already subscribe ? <Link href="/sign-in" className='underline decoration-solid'>Sign in here</Link>.</p>
-          </div>
-        </form>
+            <div className="text-center text-[#106996]/80 text-sm">
+              Déjà inscrit ?{' '}
+              <Link href="/sign-in" className="underline text-[#25a1e1] hover:text-[#106996]">Se connecter</Link>
+            </div>
+          </form>
+        </div>
+        {/* Colonne droite : illustration/logo */}
+        <div className="hidden md:flex flex-col items-center justify-center bg-[#68ccff]/10 w-1/2 p-8">
+          <Image src="/fayotlogo.png" width={120} height={120} alt="Logo Fayot" className="mb-4" />
+          <h3 className="text-[#106996] text-xl font-semibold text-center">Le Fayot t'accompagne dans toutes tes révisions !</h3>
+        </div>
       </div>
-
-      <div className="flex flex-col bg-autocallblue w-1/2 justify-center items-left gap-3 px-24">
-        <Image src="/logo.svg" alt="logo" width={100} height={100} />
-        <h1 className='text-white font-normal text-left text-4xl'>
-        Collect debts. <br />
-          More debt. <br />
-          Cheaper. <br />
-          Faster.
-        </h1>
-      </div>
-    </section>
-  )
-}
+    </div>
+  );
+};
