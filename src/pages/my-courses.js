@@ -6,6 +6,7 @@ import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { BsCardHeading } from 'react-icons/bs';
 import { withAuth } from '../hoc/withAuth';
+import { supabase } from '../utils/supabaseClient';
 
 const MyCourseComponent = ({ user }) => {
   const router = useRouter();
@@ -13,92 +14,55 @@ const MyCourseComponent = ({ user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Données de test pour les cours
-  const courses = [
-    { 
-      id: 1, 
-      title: "Introduction à la Biologie", 
-      description: "Fondamentaux de la biologie: cellules, ADN, écosystèmes...", 
-      lastUpdated: "10/05/2023", 
-      pages: 42,
-      color: "#25a1e1",
-      type: "pdf"
-    },
-    { 
-      id: 2, 
-      title: "Algèbre Linéaire", 
-      description: "Matrices, vecteurs, espaces vectoriels et transformations linéaires.", 
-      lastUpdated: "02/06/2023", 
-      pages: 78,
-      color: "#68ccff",
-      type: "pdf"
-    },
-    { 
-      id: 3, 
-      title: "Histoire Contemporaine", 
-      description: "Événements majeurs du XXe siècle et leurs impacts sur la société actuelle.", 
-      lastUpdated: "15/04/2023", 
-      pages: 63,
-      color: "#106996",
-      type: "image"
-    },
-    { 
-      id: 4, 
-      title: "Économie Politique", 
-      description: "Principes fondamentaux de l'économie et des politiques économiques.", 
-      lastUpdated: "22/05/2023", 
-      pages: 55,
-      color: "#25a1e1",
-      type: "pdf"
-    },
-    { 
-      id: 5, 
-      title: "Chimie Organique", 
-      description: "Étude des composés du carbone et de leurs réactions.", 
-      lastUpdated: "08/06/2023", 
-      pages: 89,
-      color: "#68ccff",
-      type: "image"
-    },
-    { 
-      id: 6, 
-      title: "Littérature Française", 
-      description: "Grandes œuvres et courants de la littérature française.", 
-      lastUpdated: "30/04/2023", 
-      pages: 42,
-      color: "#106996",
-      type: "pdf"
-    },
-    { 
-      id: 7, 
-      title: "Littérature Française", 
-      description: "Grandes œuvres et courants de la littérature française.", 
-      lastUpdated: "30/04/2023", 
-      pages: 42,
-      color: "#106996",
-      type: "pdf"
-    },
-    { 
-      id: 8, 
-      title: "Littérature Française", 
-      description: "Grandes œuvres et courants de la littérature française.", 
-      lastUpdated: "30/04/2023", 
-      pages: 42,
-      color: "#106996",
-      type: "pdf"
-    },
-    { 
-      id: 9, 
-      title: "Littérature Française", 
-      description: "Grandes œuvres et courants de la littérature française.", 
-      lastUpdated: "30/04/2023", 
-      pages: 42,
-      color: "#106996",
-      type: "pdf"
-    },
-  ];
-  
+  // Récupérer les documents depuis Supabase
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Transformer les données pour correspondre au format attendu
+        const formattedCourses = data.map(doc => ({
+          id: doc.id,
+          title: doc.title,
+          description: `Document ${doc.file_type.toUpperCase()}`,
+          lastUpdated: new Date(doc.updated_at).toLocaleDateString('fr-FR'),
+          pages: Math.floor(doc.file_size / 1000), // Approximation basée sur la taille du fichier
+          color: getRandomColor(doc.id), // Fonction pour générer une couleur cohérente
+          type: doc.file_type.toLowerCase()
+        }));
+
+        setCourses(formattedCourses);
+      } catch (err) {
+        setError(err.message);
+        console.error('Erreur lors de la récupération des documents:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchDocuments();
+    }
+  }, [user]);
+
+  // Fonction pour générer une couleur cohérente basée sur l'ID
+  const getRandomColor = (id) => {
+    const colors = ["#25a1e1", "#68ccff", "#106996"];
+    const index = parseInt(id.slice(0, 8), 16) % colors.length;
+    return colors[index];
+  };
+
   // Check if we're on mobile
   useEffect(() => {
     const checkIsMobile = () => {
@@ -164,7 +128,19 @@ const MyCourseComponent = ({ user }) => {
       {/* Liste des cours - version compacte */}
       <div className="flex-grow overflow-y-auto mb-3">
         <div className="flex flex-col gap-2">
-          {courses.map((course) => (
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#25a1e1]"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-600 p-4">
+              Une erreur est survenue lors du chargement de vos cours.
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="text-center text-gray-500 p-4">
+              Vous n'avez pas encore de cours. Commencez par en ajouter un !
+            </div>
+          ) : courses.map((course) => (
             <div 
               key={course.id} 
               className="bg-[#ebebd7] p-2 rounded-xl shadow-sm border border-[#68ccff]/30 relative flex h-16"
@@ -246,7 +222,19 @@ const MyCourseComponent = ({ user }) => {
         <div className="w-3/5 pr-6">
           {/* Liste de cours plus fine sans bulle extérieure */}
           <div className="flex flex-col gap-2 pb-6">
-            {courses.map((course) => (
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#25a1e1]"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-600 p-4">
+                Une erreur est survenue lors du chargement de vos cours.
+              </div>
+            ) : courses.length === 0 ? (
+              <div className="text-center text-gray-500 p-4">
+                Vous n'avez pas encore de cours. Commencez par en ajouter un !
+              </div>
+            ) : courses.map((course) => (
               <div 
                 key={course.id} 
                 className={`bg-[#ebebd7] p-2 rounded-xl border border-[#68ccff]/30 shadow-sm relative transition-all duration-300 h-20 flex ${selectedCourse === course.id ? 'ring-2 ring-[#25a1e1] scale-[1.01]' : 'hover:bg-[#68ccff]/5'}`}

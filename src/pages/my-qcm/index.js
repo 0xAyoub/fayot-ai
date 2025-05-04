@@ -8,6 +8,29 @@ import Link from 'next/link';
 import { BsCardHeading, BsQuestionCircle } from 'react-icons/bs';
 import { withAuth } from '../../hoc/withAuth';
 
+// Fonction pour générer une couleur aléatoire basée sur un ID
+const getRandomColor = (id) => {
+  // Liste de couleurs prédéfinies pour une meilleure cohérence visuelle
+  const colors = [
+    '#25a1e1', // bleu principal
+    '#106996', // bleu foncé
+    '#4CAF50', // vert
+    '#FFC107', // ambre
+    '#FF9800', // orange
+    '#9C27B0', // violet
+    '#3F51B5', // indigo
+    '#009688', // teal
+  ];
+  
+  // Utiliser l'ID pour sélectionner une couleur de manière déterministe
+  // pour que le même QCM ait toujours la même couleur
+  const hash = id.split('').reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc);
+  }, 0);
+  
+  return colors[Math.abs(hash) % colors.length];
+};
+
 const MyQCMComponent = ({ user }) => {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
@@ -17,59 +40,62 @@ const MyQCMComponent = ({ user }) => {
   const [qcms, setQcms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [questionCounts, setQuestionCounts] = useState({});
   
-  // Récupérer les QCM de l'utilisateur connecté
+  // Récupérer les QCM depuis Supabase
   useEffect(() => {
     const fetchQCMs = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          setError("Utilisateur non connecté");
-          setLoading(false);
-          return;
-        }
-        // Récupérer les QCM (quizzes)
+        setLoading(true);
+        // Récupérer les quiz
         const { data: quizzes, error: quizError } = await supabase
           .from('quizzes')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
+
         if (quizError) throw quizError;
-        if (!quizzes || quizzes.length === 0) {
-          setQcms([]);
-          setLoading(false);
-          return;
-        }
-        // Pour chaque QCM, compter les questions
-        const quizIds = quizzes.map(q => q.id);
+
+        // Récupérer le nombre de questions pour chaque quiz
         const { data: questions, error: questionsError } = await supabase
           .from('quiz_questions')
-          .select('quiz_id')
-          .in('quiz_id', quizIds);
+          .select('quiz_id');
+
         if (questionsError) throw questionsError;
-        // Compter les questions par quiz_id
-        const questionCountByQuiz = {};
-        questions.forEach(q => {
-          questionCountByQuiz[q.quiz_id] = (questionCountByQuiz[q.quiz_id] || 0) + 1;
-        });
-        // Mapper les QCM avec le nombre de questions
-        const qcmList = quizzes.map(q => ({
-          ...q,
-          questionCount: questionCountByQuiz[q.id] || 0,
-          color: '#25a1e1', // tu peux améliorer la couleur si tu veux
-          progress: 0 // à calculer si tu as une logique de progression
+
+        // Compter les questions par quiz
+        const counts = questions.reduce((acc, q) => {
+          acc[q.quiz_id] = (acc[q.quiz_id] || 0) + 1;
+          return acc;
+        }, {});
+
+        setQuestionCounts(counts);
+
+        // Transformer les données
+        const formattedQCMs = quizzes.map(quiz => ({
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          courseTitle: "Cours associé", // À implémenter si vous ajoutez une relation avec les cours
+          questionCount: counts[quiz.id] || 0,
+          progress: Math.floor(Math.random() * 100), // À remplacer par la vraie progression
+          color: getRandomColor(quiz.id),
+          lastUsed: new Date(quiz.updated_at).toLocaleDateString('fr-FR')
         }));
-        setQcms(qcmList);
-        setLoading(false);
+
+        setQcms(formattedQCMs);
       } catch (err) {
-        setError("Erreur lors du chargement des QCM");
+        setError(err.message);
+        console.error('Erreur lors de la récupération des QCM:', err);
+      } finally {
         setLoading(false);
       }
     };
-    fetchQCMs();
-  }, []);
+
+    if (user) {
+      fetchQCMs();
+    }
+  }, [user]);
   
   // Check if we're on mobile
   useEffect(() => {
@@ -90,23 +116,13 @@ const MyQCMComponent = ({ user }) => {
   };
   
   const handleStartQCM = (qcmId) => {
-    router.push(`/take-qcm?id=${qcmId}`);
-  };
-  
-  const handleEditQCM = (qcmId, e) => {
-    e.stopPropagation();
-    router.push(`/edit-qcm?id=${qcmId}`);
+    router.push(`/my-qcm/${qcmId}`);
   };
   
   const handleCreateQCM = () => {
     router.push('/new-qcm');
   };
-
-  const handlePreviewQCM = (qcmId) => {
-    setSelectedQCM(qcmId);
-    setPreviewOpen(true);
-  };
-
+  
   // Formater le pourcentage de progression
   const formatProgress = (progress) => {
     return progress < 30 ? "Débutant" : progress < 70 ? "Intermédiaire" : "Avancé";
@@ -152,7 +168,7 @@ const MyQCMComponent = ({ user }) => {
             {qcms.map((qcm) => (
               <div 
                 key={qcm.id} 
-                className="bg-[#ebebd7] p-2 rounded-xl shadow-sm border border-[#68ccff]/30 relative flex h-16"
+                className={`bg-[#ebebd7] p-2 rounded-xl shadow-sm border border-[#68ccff]/30 relative flex h-16 ${selectedQCM === qcm.id ? 'ring-2 ring-[#25a1e1]' : ''}`}
                 onClick={() => setSelectedQCM(qcm.id)}
               >
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: qcm.color }}></div>
@@ -173,24 +189,9 @@ const MyQCMComponent = ({ user }) => {
                       >
                         <FaCheckSquare className="mr-0.5 w-2 h-2" /> Démarrer
                       </button>
-                      <button 
-                        onClick={(e) => handleEditQCM(qcm.id, e)}
-                        className="bg-[#106996]/10 text-[#106996] text-[10px] font-medium py-0.5 px-1 rounded-md shadow-sm flex items-center"
-                      >
-                        <FaEdit className="mr-0.5 w-2 h-2" /> Éditer
-                      </button>
                     </div>
                   </div>
                   <div className="flex flex-col items-end justify-between">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePreviewQCM(qcm.id);
-                      }} 
-                      className="flex-shrink-0 bg-[#68ccff]/10 text-[#25a1e1] p-0.5 rounded-md self-start ml-1"
-                    >
-                      <FaEye className="w-2.5 h-2.5" />
-                    </button>
                     <div className="text-[10px] text-gray-400 mr-0.5">
                       {qcm.questionCount} questions
                     </div>
@@ -264,24 +265,9 @@ const MyQCMComponent = ({ user }) => {
                         >
                           <FaCheckSquare className="mr-1 w-2.5 h-2.5" /> Démarrer
                         </button>
-                        <button 
-                          onClick={(e) => handleEditQCM(qcm.id, e)}
-                          className="bg-[#106996]/10 text-[#106996] text-xs font-medium py-0.5 px-1.5 rounded-md shadow-sm hover:bg-[#106996]/20 hover:scale-105 transition-all duration-300 flex items-center"
-                        >
-                          <FaEdit className="mr-1 w-2.5 h-2.5" /> Éditer
-                        </button>
                       </div>
                     </div>
                     <div className="flex flex-col items-end justify-between ml-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePreviewQCM(qcm.id);
-                        }} 
-                        className="flex-shrink-0 bg-[#68ccff]/20 text-[#25a1e1] p-1 rounded-md hover:bg-[#68ccff]/30 transition-all hover:scale-105"
-                      >
-                        <FaEye className="w-3 h-3" />
-                      </button>
                       <div className="flex items-center text-[10px] text-gray-400">
                         <div className="w-16 h-1.5 bg-gray-200 rounded-full mr-1.5">
                           <div 
@@ -313,146 +299,70 @@ const MyQCMComponent = ({ user }) => {
                 </h2>
                 
                 <div className="flex-grow overflow-y-auto">
-                  {previewOpen ? (
-                    // Aperçu des questions du QCM
-                    <div className="h-full flex flex-col">
-                      <div className="bg-[#68ccff]/5 p-2 rounded-xl mb-4 flex justify-between items-center">
-                        <div className="flex items-center text-[#106996]">
-                          <BsQuestionCircle className="w-5 h-5 mr-2 text-[#25a1e1]" />
-                          <span>Aperçu du QCM</span>
+                  <div className="bg-[#68ccff]/10 p-4 rounded-xl mb-4">
+                    <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
+                      <FaBook className="mr-2 text-[#25a1e1]" /> Détails du QCM
+                    </h3>
+                    <p className="text-gray-700 mb-2">
+                      {qcms.find(q => q.id === selectedQCM)?.description}
+                    </p>
+                    <div className="flex items-center text-sm text-gray-500 mb-1">
+                      <FaBook className="w-4 h-4 mr-1 text-gray-500" />
+                      <span>Cours: {qcms.find(q => q.id === selectedQCM)?.courseTitle}</span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Dernière utilisation: {qcms.find(q => q.id === selectedQCM)?.lastUsed}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Nombre de questions: {qcms.find(q => q.id === selectedQCM)?.questionCount}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-[#68ccff]/10 p-4 rounded-xl">
+                    <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
+                      <FaLightbulb className="mr-2 text-[#25a1e1]" /> Progression
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium text-[#106996]">Niveau de maîtrise</span>
+                          <span className="text-sm text-gray-500">{formatProgress(qcms.find(q => q.id === selectedQCM)?.progress)}</span>
                         </div>
-                        <button 
-                          onClick={() => setPreviewOpen(false)}
-                          className="text-[#25a1e1] text-sm hover:text-[#106996]"
-                        >
-                          Fermer l'aperçu
-                        </button>
+                        <div className="w-full h-2 bg-gray-200 rounded-full">
+                          <div 
+                            className="h-full rounded-full" 
+                            style={{ 
+                              width: `${qcms.find(q => q.id === selectedQCM)?.progress}%`,
+                              backgroundColor: qcms.find(q => q.id === selectedQCM)?.progress < 30 ? "#f97316" : 
+                                                      qcms.find(q => q.id === selectedQCM)?.progress < 70 ? "#facc15" : "#22c55e"
+                            }}
+                          ></div>
+                        </div>
                       </div>
                       
-                      <div className="flex-grow rounded-xl flex flex-col items-center justify-start p-3">
-                        {[1, 2, 3].map((index) => (
-                          <div 
-                            key={index}
-                            className="bg-white rounded-xl border border-[#68ccff]/30 shadow-md w-full max-w-sm mx-auto mb-4 p-4 transform transition-transform hover:scale-[1.02]"
-                          >
-                            <div className="text-center p-2 border-b border-gray-200 mb-2">
-                              <p className="font-medium text-[#106996]">
-                                {index === 1 ? "Quelle est la définition de l'ADN ?" : 
-                                 index === 2 ? "Quel composant cellulaire contient l'ADN ?" : 
-                                 "Quelle est la fonction principale du cycle de Krebs ?"}
-                              </p>
-                            </div>
-                            <div className="p-2 text-gray-600">
-                              <div className="flex items-center mb-1 hover:bg-[#68ccff]/10 p-1 rounded">
-                                <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center mr-2">
-                                  {index === 1 && <div className="w-2 h-2 bg-[#25a1e1] rounded-full"></div>}
-                                </div>
-                                <p>{index === 1 ? "Acide désoxyribonucléique, support de l'information génétique" : 
-                                   index === 2 ? "Le cytoplasme" : 
-                                   "La production d'énergie sous forme d'ATP"}</p>
-                              </div>
-                              <div className="flex items-center mb-1 hover:bg-[#68ccff]/10 p-1 rounded">
-                                <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center mr-2">
-                                  {index === 2 && <div className="w-2 h-2 bg-[#25a1e1] rounded-full"></div>}
-                                </div>
-                                <p>{index === 1 ? "Acide détoxifiant nucléique, élément du métabolisme" : 
-                                   index === 2 ? "Le noyau" : 
-                                   "La dégradation des lipides"}</p>
-                              </div>
-                              <div className="flex items-center mb-1 hover:bg-[#68ccff]/10 p-1 rounded">
-                                <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center mr-2">
-                                  {index === 3 && <div className="w-2 h-2 bg-[#25a1e1] rounded-full"></div>}
-                                </div>
-                                <p>{index === 1 ? "Acide double nucléotidique, structure de la membrane" : 
-                                   index === 2 ? "Les mitochondries" : 
-                                   "La synthèse des protéines"}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="bg-[#ebebd7] p-3 rounded-lg">
+                        <div className="flex items-center text-[#106996] mb-2">
+                          <FaStar className="w-4 h-4 mr-2 text-yellow-500" />
+                          <span className="font-medium">Conseils</span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {qcms.find(q => q.id === selectedQCM)?.progress < 30 
+                            ? "Entraînez-vous régulièrement avec ce QCM pour améliorer vos connaissances."
+                            : qcms.find(q => q.id === selectedQCM)?.progress < 70 
+                            ? "Bon travail ! Continuez à vous tester régulièrement."
+                            : "Excellent ! Pensez à créer des QCM plus avancés pour vous perfectionner."}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="bg-[#68ccff]/10 p-4 rounded-xl mb-4">
-                        <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
-                          <FaBook className="mr-2 text-[#25a1e1]" /> Détails du QCM
-                        </h3>
-                        <p className="text-gray-700 mb-2">
-                          {qcms.find(q => q.id === selectedQCM)?.description}
-                        </p>
-                        <div className="flex items-center text-sm text-gray-500 mb-1">
-                          <FaBook className="w-4 h-4 mr-1 text-gray-500" />
-                          <span>Cours: {qcms.find(q => q.id === selectedQCM)?.courseTitle}</span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Dernière utilisation: {qcms.find(q => q.id === selectedQCM)?.lastUsed}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Nombre de questions: {qcms.find(q => q.id === selectedQCM)?.questionCount}
-                        </div>
-                        
-                        <button 
-                          onClick={() => setPreviewOpen(true)}
-                          className="mt-3 flex items-center text-[#25a1e1] text-sm font-medium hover:text-[#106996] transition-colors"
-                        >
-                          <FaEye className="mr-1.5" /> Voir les questions
-                        </button>
-                      </div>
-                      
-                      <div className="bg-[#68ccff]/10 p-4 rounded-xl">
-                        <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
-                          <FaLightbulb className="mr-2 text-[#25a1e1]" /> Progression
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="font-medium text-[#106996]">Niveau de maîtrise</span>
-                              <span className="text-sm text-gray-500">{formatProgress(qcms.find(q => q.id === selectedQCM)?.progress)}</span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full">
-                              <div 
-                                className="h-full rounded-full" 
-                                style={{ 
-                                  width: `${qcms.find(q => q.id === selectedQCM)?.progress}%`,
-                                  backgroundColor: qcms.find(q => q.id === selectedQCM)?.progress < 30 ? "#f97316" : 
-                                                  qcms.find(q => q.id === selectedQCM)?.progress < 70 ? "#facc15" : "#22c55e"
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-[#ebebd7] p-3 rounded-lg">
-                            <div className="flex items-center text-[#106996] mb-2">
-                              <FaStar className="w-4 h-4 mr-2 text-yellow-500" />
-                              <span className="font-medium">Conseils</span>
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              {qcms.find(q => q.id === selectedQCM)?.progress < 30 
-                                ? "Entraînez-vous régulièrement avec ce QCM pour améliorer vos connaissances."
-                                : qcms.find(q => q.id === selectedQCM)?.progress < 70 
-                                ? "Bon travail ! Continuez à vous tester régulièrement."
-                                : "Excellent ! Pensez à créer des QCM plus avancés pour vous perfectionner."}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  </div>
                 </div>
                 
-                <div className="flex space-x-3 mt-5 pt-3 border-t border-[#68ccff]/20">
+                <div className="flex mt-5 pt-3 border-t border-[#68ccff]/20">
                   <button
                     onClick={() => handleStartQCM(selectedQCM)}
-                    className="flex-1 bg-[#25a1e1] text-[#ebebd7] font-bold py-2.5 px-4 rounded-xl hover:bg-[#1d91c9] hover:scale-105 transition-all duration-300 shadow-md flex items-center justify-center"
+                    className="w-full bg-[#25a1e1] text-[#ebebd7] font-bold py-2.5 px-4 rounded-xl hover:bg-[#1d91c9] hover:scale-105 transition-all duration-300 shadow-md flex items-center justify-center"
                   >
                     <FaCheckSquare className="mr-2" /> Démarrer
-                  </button>
-                  <button
-                    onClick={(e) => handleEditQCM(selectedQCM, e)}
-                    className="flex-1 bg-[#106996] text-[#ebebd7] font-bold py-2.5 px-4 rounded-xl hover:bg-[#0d5475] hover:scale-105 transition-all duration-300 shadow-md flex items-center justify-center"
-                  >
-                    <FaEdit className="mr-2" /> Éditer
                   </button>
                 </div>
               </div>

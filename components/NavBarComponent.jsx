@@ -1,4 +1,4 @@
-import { FaHome, FaBook, FaBookmark, FaUserAlt, FaCog, FaBars, FaCrown, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaBook, FaBookmark, FaUserAlt, FaCog, FaBars, FaCrown, FaSignOutAlt, FaStickyNote, FaQuestionCircle } from 'react-icons/fa';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -119,7 +119,7 @@ export const NavBarComponent = () => {
                                         className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                                         onClick={() => setIsMenuOpen(false)}
                                     >
-                                        <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
+                                        <FaStickyNote className="w-5 h-5 text-[#25a1e1]" />
                                         <span className='ml-3 text-[16px] font-medium'>Mes cartes mémos</span>
                                     </Link>
 
@@ -128,7 +128,7 @@ export const NavBarComponent = () => {
                                         className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                                         onClick={() => setIsMenuOpen(false)}
                                     >
-                                        <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
+                                        <FaQuestionCircle className="w-5 h-5 text-[#25a1e1]" />
                                         <span className='ml-3 text-[16px] font-medium'>Mes QCMs</span>
                                     </Link>
                                 </div>
@@ -205,7 +205,7 @@ export const NavBarComponent = () => {
                         href="/my-cards" 
                         className={`flex items-center w-full rounded-xl px-4 py-2.5 transition-all hover:bg-[#68ccff]/10 hover:scale-105`}
                     >
-                        <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
+                        <FaStickyNote className="w-5 h-5 text-[#25a1e1]" />
                         <span className='ml-3 text-[16px] font-medium'>Mes mémo cartes</span>
                     </Link>
 
@@ -213,7 +213,7 @@ export const NavBarComponent = () => {
                         href="/my-qcm" 
                         className={`flex items-center w-full rounded-xl px-4 py-2.5 transition-all hover:bg-[#68ccff]/10 hover:scale-105`}
                     >
-                        <FaBookmark className="w-5 h-5 text-[#25a1e1]" />
+                        <FaQuestionCircle className="w-5 h-5 text-[#25a1e1]" />
                         <span className='ml-3 text-[16px] font-medium'>Mes QCMs</span>
                     </Link>
                 </div>

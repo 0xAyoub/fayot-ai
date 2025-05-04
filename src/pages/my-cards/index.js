@@ -6,6 +6,7 @@ import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { BsCardHeading } from 'react-icons/bs';
 import { withAuth } from '../../hoc/withAuth';
+import { supabase } from '../../utils/supabaseClient';
 
 const MyCardsComponent = ({ user }) => {
   const router = useRouter();
@@ -13,70 +14,84 @@ const MyCardsComponent = ({ user }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [decks, setDecks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Données de test pour les jeux de cartes
-  const decks = [
-    { 
-      id: 1, 
-      title: "Biologie Cellulaire", 
-      description: "Cartes sur la structure cellulaire, l'ADN, et les processus métaboliques.", 
-      lastUsed: "13/05/2023",
-      courseTitle: "Introduction à la Biologie", 
-      cardCount: 24,
-      progress: 65,
-      color: "#25a1e1"
-    },
-    { 
-      id: 2, 
-      title: "Matrices et Vecteurs", 
-      description: "Définitions et opérations sur les matrices et les vecteurs.", 
-      lastUsed: "17/06/2023",
-      courseTitle: "Algèbre Linéaire", 
-      cardCount: 18,
-      progress: 42,
-      color: "#68ccff"
-    },
-    { 
-      id: 3, 
-      title: "Seconde Guerre Mondiale", 
-      description: "Dates clés, personnages et événements de la Seconde Guerre Mondiale.", 
-      lastUsed: "22/04/2023",
-      courseTitle: "Histoire Contemporaine", 
-      cardCount: 31,
-      progress: 89,
-      color: "#106996"
-    },
-    { 
-      id: 4, 
-      title: "Theories Économiques", 
-      description: "Principales théories économiques et leurs fondateurs.", 
-      lastUsed: "05/05/2023",
-      courseTitle: "Économie Politique", 
-      cardCount: 15,
-      progress: 30,
-      color: "#25a1e1"
-    },
-    { 
-      id: 5, 
-      title: "Composés Organiques", 
-      description: "Nomenclature et propriétés des composés organiques.", 
-      lastUsed: "19/06/2023",
-      courseTitle: "Chimie Organique", 
-      cardCount: 27,
-      progress: 18,
-      color: "#68ccff"
-    },
-    { 
-      id: 6, 
-      title: "Auteurs du XIXe Siècle", 
-      description: "Profils des principaux auteurs français du XIXe siècle et leurs œuvres.", 
-      lastUsed: "08/05/2023",
-      courseTitle: "Littérature Française", 
-      cardCount: 20,
-      progress: 75,
-      color: "#106996"
-    },
-  ];
+  // Récupérer les flashcards depuis Supabase
+  useEffect(() => {
+    const fetchFlashcardLists = async () => {
+      try {
+        setLoading(true);
+        console.log("Récupération des listes de mémocartes");
+        
+        // 1. Récupérer les listes de flashcards (table flashcard_lists)
+        const { data: flashcardLists, error: listsError } = await supabase
+          .from('flashcard_lists')
+          .select(`
+            *,
+            documents:document_id (
+              title,
+              file_type
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false });
+        
+        if (listsError) {
+          console.error("Erreur lors de la récupération des listes:", listsError);
+          throw listsError;
+        }
+        
+        console.log("Listes récupérées:", flashcardLists);
+        
+        // 2. Pour chaque liste, compter le nombre de cartes
+        const listsWithCardCounts = [];
+        for (const list of flashcardLists) {
+          // Récupérer le nombre de cartes pour cette liste
+          const { count, error: countError } = await supabase
+            .from('flashcards')
+            .select('id', { count: 'exact' })
+            .eq('list_id', list.id);
+          
+          if (countError) {
+            console.error(`Erreur lors du comptage des cartes pour la liste ${list.id}:`, countError);
+          }
+          
+          // Transformer les données pour correspondre au format attendu
+          listsWithCardCounts.push({
+            id: list.id, // Utiliser l'UUID de la liste
+            title: list.title || (list.documents ? list.documents.title : 'Sans titre'),
+            description: list.description || `Cartes de révision pour ${list.title || 'document'}`,
+            courseTitle: list.documents ? list.documents.title : 'Document',
+            cardCount: count || list.card_count || 0,
+            lastUsed: new Date(list.updated_at).toLocaleDateString('fr-FR'),
+            color: getRandomColor(list.id),
+            progress: Math.floor(Math.random() * 100) // Simuler une progression
+          });
+        }
+        
+        console.log("Listes formatées:", listsWithCardCounts);
+        setDecks(listsWithCardCounts);
+      } catch (err) {
+        setError(err.message);
+        console.error('Erreur lors de la récupération des listes de mémocartes:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchFlashcardLists();
+    }
+  }, [user]);
+
+  // Fonction pour générer une couleur cohérente basée sur l'ID
+  const getRandomColor = (id) => {
+    const colors = ["#25a1e1", "#68ccff", "#106996"];
+    const index = parseInt(id.slice(0, 8), 16) % colors.length;
+    return colors[index];
+  };
   
   // Check if we're on mobile
   useEffect(() => {
@@ -97,23 +112,13 @@ const MyCardsComponent = ({ user }) => {
   };
   
   const handleStudyDeck = (deckId) => {
-    router.push(`/study-deck?id=${deckId}`);
-  };
-  
-  const handleEditDeck = (deckId, e) => {
-    e.stopPropagation();
-    router.push(`/edit-deck?id=${deckId}`);
+    router.push(`/my-cards/${deckId}`);
   };
   
   const handleCreateDeck = () => {
     router.push('/new-deck');
   };
-
-  const handlePreviewDeck = (deckId) => {
-    setSelectedDeck(deckId);
-    setPreviewOpen(true);
-  };
-
+  
   // Formater le pourcentage de progression
   const formatProgress = (progress) => {
     return progress < 30 ? "Débutant" : progress < 70 ? "Intermédiaire" : "Avancé";
@@ -152,7 +157,7 @@ const MyCardsComponent = ({ user }) => {
           {decks.map((deck) => (
             <div 
               key={deck.id} 
-              className="bg-[#ebebd7] p-2 rounded-xl shadow-sm border border-[#68ccff]/30 relative flex h-16"
+              className={`bg-[#ebebd7] p-2 rounded-xl shadow-sm border border-[#68ccff]/30 relative flex h-16 ${selectedDeck === deck.id ? 'ring-2 ring-[#25a1e1]' : ''}`}
               onClick={() => setSelectedDeck(deck.id)}
             >
               <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: deck.color }}></div>
@@ -173,24 +178,9 @@ const MyCardsComponent = ({ user }) => {
                     >
                       <FaBrain className="mr-0.5 w-2 h-2" /> Réviser
                     </button>
-                    <button 
-                      onClick={(e) => handleEditDeck(deck.id, e)}
-                      className="bg-[#106996]/10 text-[#106996] text-[10px] font-medium py-0.5 px-1 rounded-md shadow-sm flex items-center"
-                    >
-                      <FaEdit className="mr-0.5 w-2 h-2" /> Éditer
-                    </button>
                   </div>
                 </div>
                 <div className="flex flex-col items-end justify-between">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewDeck(deck.id);
-                    }} 
-                    className="flex-shrink-0 bg-[#68ccff]/10 text-[#25a1e1] p-0.5 rounded-md self-start ml-1"
-                  >
-                    <FaEye className="w-2.5 h-2.5" />
-                  </button>
                   <div className="text-[10px] text-gray-400 mr-0.5">
                     {deck.cardCount} cartes
                   </div>
@@ -256,24 +246,9 @@ const MyCardsComponent = ({ user }) => {
                       >
                         <FaBrain className="mr-1 w-2.5 h-2.5" /> Réviser
                       </button>
-                      <button 
-                        onClick={(e) => handleEditDeck(deck.id, e)}
-                        className="bg-[#106996]/10 text-[#106996] text-xs font-medium py-0.5 px-1.5 rounded-md shadow-sm hover:bg-[#106996]/20 hover:scale-105 transition-all duration-300 flex items-center"
-                      >
-                        <FaEdit className="mr-1 w-2.5 h-2.5" /> Éditer
-                      </button>
                     </div>
                   </div>
                   <div className="flex flex-col items-end justify-between ml-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePreviewDeck(deck.id);
-                      }} 
-                      className="flex-shrink-0 bg-[#68ccff]/20 text-[#25a1e1] p-1 rounded-md hover:bg-[#68ccff]/30 transition-all hover:scale-105"
-                    >
-                      <FaEye className="w-3 h-3" />
-                    </button>
                     <div className="flex items-center text-[10px] text-gray-400">
                       <div className="w-16 h-1.5 bg-gray-200 rounded-full mr-1.5">
                         <div 
@@ -304,127 +279,70 @@ const MyCardsComponent = ({ user }) => {
                 </h2>
                 
                 <div className="flex-grow overflow-y-auto">
-                  {previewOpen ? (
-                    // Aperçu des cartes
-                    <div className="h-full flex flex-col">
-                      <div className="bg-[#68ccff]/5 p-2 rounded-xl mb-4 flex justify-between items-center">
-                        <div className="flex items-center text-[#106996]">
-                          <BsCardHeading className="w-5 h-5 mr-2 text-[#25a1e1]" />
-                          <span>Aperçu des cartes</span>
+                  <div className="bg-[#68ccff]/10 p-4 rounded-xl mb-4">
+                    <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
+                      <FaBook className="mr-2 text-[#25a1e1]" /> Détails du jeu
+                    </h3>
+                    <p className="text-gray-700 mb-2">
+                      {decks.find(d => d.id === selectedDeck)?.description}
+                    </p>
+                    <div className="flex items-center text-sm text-gray-500 mb-1">
+                      <FaBook className="w-4 h-4 mr-1 text-gray-500" />
+                      <span>Cours: {decks.find(d => d.id === selectedDeck)?.courseTitle}</span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Dernière révision: {decks.find(d => d.id === selectedDeck)?.lastUsed}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Nombre de cartes: {decks.find(d => d.id === selectedDeck)?.cardCount}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-[#68ccff]/10 p-4 rounded-xl">
+                    <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
+                      <FaLightbulb className="mr-2 text-[#25a1e1]" /> Progression
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium text-[#106996]">Niveau de maîtrise</span>
+                          <span className="text-sm text-gray-500">{formatProgress(decks.find(d => d.id === selectedDeck)?.progress)}</span>
                         </div>
-                        <button 
-                          onClick={() => setPreviewOpen(false)}
-                          className="text-[#25a1e1] text-sm hover:text-[#106996]"
-                        >
-                          Fermer l'aperçu
-                        </button>
+                        <div className="w-full h-2 bg-gray-200 rounded-full">
+                          <div 
+                            className="h-full rounded-full" 
+                            style={{ 
+                              width: `${decks.find(d => d.id === selectedDeck)?.progress}%`,
+                              backgroundColor: decks.find(d => d.id === selectedDeck)?.progress < 30 ? "#f97316" : 
+                                                      decks.find(d => d.id === selectedDeck)?.progress < 70 ? "#facc15" : "#22c55e"
+                            }}
+                          ></div>
+                        </div>
                       </div>
                       
-                      <div className="flex-grow rounded-xl flex flex-col items-center justify-start p-3">
-                        {[1, 2, 3].map((index) => (
-                          <div 
-                            key={index}
-                            className="bg-white rounded-xl border border-[#68ccff]/30 shadow-md w-full max-w-sm mx-auto mb-4 p-4 transform transition-transform hover:scale-[1.02]"
-                          >
-                            <div className="text-center p-2 border-b border-gray-200 mb-2">
-                              <p className="font-medium text-[#106996]">
-                                {index === 1 ? "Qu'est-ce que l'ADN ?" : 
-                                 index === 2 ? "Les composants d'une cellule" : 
-                                 "Le cycle de Krebs"}
-                              </p>
-                            </div>
-                            <div className="text-center p-2 text-gray-600">
-                              <p>
-                                {index === 1 ? "L'acide désoxyribonucléique, support de l'information génétique..." : 
-                                 index === 2 ? "Membrane, cytoplasme, noyau, mitochondries..." : 
-                                 "Série de réactions chimiques du métabolisme cellulaire..."}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="bg-[#ebebd7] p-3 rounded-lg">
+                        <div className="flex items-center text-[#106996] mb-2">
+                          <FaStar className="w-4 h-4 mr-2 text-yellow-500" />
+                          <span className="font-medium">Conseils</span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {decks.find(d => d.id === selectedDeck)?.progress < 30 
+                            ? "Révisez quotidiennement pour améliorer votre mémorisation."
+                            : decks.find(d => d.id === selectedDeck)?.progress < 70 
+                            ? "Bon travail ! Continuez à réviser régulièrement."
+                            : "Excellent ! Pensez à créer des cartes plus avancées."}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="bg-[#68ccff]/10 p-4 rounded-xl mb-4">
-                        <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
-                          <FaBook className="mr-2 text-[#25a1e1]" /> Détails du jeu
-                        </h3>
-                        <p className="text-gray-700 mb-2">
-                          {decks.find(d => d.id === selectedDeck)?.description}
-                        </p>
-                        <div className="flex items-center text-sm text-gray-500 mb-1">
-                          <FaBook className="w-4 h-4 mr-1 text-gray-500" />
-                          <span>Cours: {decks.find(d => d.id === selectedDeck)?.courseTitle}</span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Dernière révision: {decks.find(d => d.id === selectedDeck)?.lastUsed}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Nombre de cartes: {decks.find(d => d.id === selectedDeck)?.cardCount}
-                        </div>
-                        
-                        <button 
-                          onClick={() => setPreviewOpen(true)}
-                          className="mt-3 flex items-center text-[#25a1e1] text-sm font-medium hover:text-[#106996] transition-colors"
-                        >
-                          <FaEye className="mr-1.5" /> Voir les cartes
-                        </button>
-                      </div>
-                      
-                      <div className="bg-[#68ccff]/10 p-4 rounded-xl">
-                        <h3 className="text-lg font-medium text-[#106996] mb-2 flex items-center">
-                          <FaLightbulb className="mr-2 text-[#25a1e1]" /> Progression
-                        </h3>
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="font-medium text-[#106996]">Niveau de maîtrise</span>
-                              <span className="text-sm text-gray-500">{formatProgress(decks.find(d => d.id === selectedDeck)?.progress)}</span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full">
-                              <div 
-                                className="h-full rounded-full" 
-                                style={{ 
-                                  width: `${decks.find(d => d.id === selectedDeck)?.progress}%`,
-                                  backgroundColor: decks.find(d => d.id === selectedDeck)?.progress < 30 ? "#f97316" : 
-                                                  decks.find(d => d.id === selectedDeck)?.progress < 70 ? "#facc15" : "#22c55e"
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-[#ebebd7] p-3 rounded-lg">
-                            <div className="flex items-center text-[#106996] mb-2">
-                              <FaStar className="w-4 h-4 mr-2 text-yellow-500" />
-                              <span className="font-medium">Conseils</span>
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              {decks.find(d => d.id === selectedDeck)?.progress < 30 
-                                ? "Révisez quotidiennement pour améliorer votre mémorisation."
-                                : decks.find(d => d.id === selectedDeck)?.progress < 70 
-                                ? "Bon travail ! Continuez à réviser régulièrement."
-                                : "Excellent ! Pensez à créer des cartes plus avancées."}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  </div>
                 </div>
                 
-                <div className="flex space-x-3 mt-5 pt-3 border-t border-[#68ccff]/20">
+                <div className="flex mt-5 pt-3 border-t border-[#68ccff]/20">
                   <button
                     onClick={() => handleStudyDeck(selectedDeck)}
-                    className="flex-1 bg-[#25a1e1] text-[#ebebd7] font-bold py-2.5 px-4 rounded-xl hover:bg-[#1d91c9] hover:scale-105 transition-all duration-300 shadow-md flex items-center justify-center"
+                    className="w-full bg-[#25a1e1] text-[#ebebd7] font-bold py-2.5 px-4 rounded-xl hover:bg-[#1d91c9] hover:scale-105 transition-all duration-300 shadow-md flex items-center justify-center"
                   >
                     <FaBrain className="mr-2" /> Réviser
-                  </button>
-                  <button
-                    onClick={(e) => handleEditDeck(selectedDeck, e)}
-                    className="flex-1 bg-[#106996] text-[#ebebd7] font-bold py-2.5 px-4 rounded-xl hover:bg-[#0d5475] hover:scale-105 transition-all duration-300 shadow-md flex items-center justify-center"
-                  >
-                    <FaEdit className="mr-2" /> Éditer
                   </button>
                 </div>
               </div>
