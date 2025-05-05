@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
@@ -38,3 +39,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+=======
+# fayot-ai
+pour aider les étudiants à réviser leur court plus efficacement en transformant des cours en PDF ou JPG/PNG en flashcards, QCM et Examens grâce à OpenAI Vision, PDF-Lib et GPT-4o
+>>>>>>> 4640a3e28281ebf1cffb9e7818848a99df7c9f6e
