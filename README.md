@@ -1,45 +1,15 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+FayotAI est un SaaS B2C que j'ai mis en production qui permet aux étudiants de transformer leurs cours ennuyeux en QCM, carte mémos, et examens sur-mesure avec un tuteur scolaire en IA qui suit leur progression et leur donne des conseils personnalisés.
 
-## Getting Started
+L'utilisateur peut créer un compte, importer son cours en format image (analyse d'image avec vision par ordinateur / OCR) ou en format PDF (pdf2json) et créer des QCMs, des examens ou des mémo-cartes, et souscrire à un abonnement dès qu'il a dépassé un certain nombre de crédits gratuits.
 
-First, run the development server:
+La Stack technique:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js / Vercel / React.js
+- OpenAI GPT-4o (OpenAI Vision)
+- Pdf2Json
+- Postgresql / Supabase / Supabase Auth
+- Node.js
+- Stripe (Paiement)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
-
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-=======
-# fayot-ai
-pour aider les étudiants à réviser leur court plus efficacement en transformant des cours en PDF ou JPG/PNG en flashcards, QCM et Examens grâce à OpenAI Vision, PDF-Lib et GPT-4o
->>>>>>> 4640a3e28281ebf1cffb9e7818848a99df7c9f6e
+Voici la landing page:
+Voici l'app:
