@@ -11,5 +11,5 @@ La Stack technique:
 - Node.js
 - Stripe (Paiement)
 
-Voici la landing page:
+Voici la landing page:    <br>
 Voici l'app:
