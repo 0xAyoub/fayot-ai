@@ -142,24 +142,47 @@ function extractJSONFromMarkdown(text) {
 }
 
 // Fonction pour générer des QCM avec GPT-4o à partir de texte
-async function generateQCMFromText(content, numberOfQuestions) {
+async function generateQCMFromText(content, numberOfQuestions, difficultParts = '') {
+  const prompt = difficultParts 
+    ? `Crée ${numberOfQuestions} questions à choix multiples à partir du contenu suivant. Insiste particulièrement sur ces concepts difficiles: ${difficultParts}.`
+    : `Crée ${numberOfQuestions} questions à choix multiples à partir du contenu suivant.`;
+
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
         role: "system",
-        content: "You are a professional educator creating multiple-choice questions (QCM) for students. Each question should have exactly 4 options, with only one correct answer. Make the options plausible but only one should be correct. Return ONLY a JSON array with no Markdown formatting."
+        content: `Tu es un éducateur professionnel qui crée des QCM pour les étudiants. 
+        
+        INSTRUCTIONS IMPORTANTES:
+        - Chaque question doit avoir exactement 4 options
+        - Mélange le nombre de réponses correctes:
+          * Environ 60% des questions doivent avoir 1 réponse correcte
+          * Environ 30% des questions doivent avoir 2 réponses correctes
+          * Environ 10% des questions doivent avoir 3 réponses correctes
+          * JAMAIS de questions avec 0 ou 4 réponses correctes
+        - Les options correctes doivent être mélangées aléatoirement parmi les options
+        - Les options incorrectes doivent être plausibles mais clairement fausses
+        - Retourne UNIQUEMENT un tableau JSON sans formatage Markdown
+        
+        Format JSON attendu:
+        [
+          {
+            "question": "Le texte de la question",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correctOptions": [0, 2], // indices des options correctes (0-indexé)
+            "explanation": "Explication courte de la réponse correcte"
+          },
+          ...
+        ]`
       },
       {
         role: "user",
-        content: `Create ${numberOfQuestions} multiple-choice questions from the following content. Format each question as a JSON object with these fields: 
-        1. 'question': the question text
-        2. 'correctAnswer': the correct answer text
-        3. 'options': an array of 4 choices including the correct answer
+        content: `${prompt}
         
-        Return the result as a JSON array. No markdown formatting, pure JSON only.
+        Contenu: ${content}
         
-        Content: ${content}`
+        Retourne un tableau JSON avec des questions à choix multiples. Chaque question doit suivre exactement le format demandé, avec un nombre variable de bonnes réponses (1, 2 ou 3 mais jamais 0 ou 4).`
       }
     ],
     max_tokens: 3000
@@ -186,12 +209,13 @@ async function generateQCMFromText(content, numberOfQuestions) {
     console.error("Erreur lors du parsing du JSON:", error);
     console.error("Réponse brute:", questionsText);
     
-    // Au lieu de lancer une erreur, on renvoie une question d'erreur
+    // Au lieu de lancer une erreur, on renvoie des questions d'erreur
     return [
       {
-        question: "Erreur lors de la génération",
-        correctAnswer: "Réessayer",
-        options: ["Réessayer", "Contacter le support", "Vérifier la connexion", "Utiliser un autre document"]
+        question: "Erreur lors de la génération des questions",
+        options: ["Réessayer", "Contacter le support", "Vérifier la connexion", "Utiliser un autre document"],
+        correctOptions: [0],
+        explanation: "Une erreur est survenue lors de la génération des questions."
       }
     ];
   }
@@ -200,7 +224,7 @@ async function generateQCMFromText(content, numberOfQuestions) {
 // Route API principale
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
   try {
@@ -238,11 +262,12 @@ export default async function handler(req, res) {
     });
 
     const { file } = req;
-    const { userId, numberOfCards } = req.body;
-    const numberOfQuestions = parseInt(numberOfCards) || 10;
+    const userId = req.body.userId;
+    const numberOfQuestions = parseInt(req.body.numberOfCards) || 10;
+    const difficultParts = req.body.difficultParts || '';
 
     if (!file || !userId) {
-      return res.status(400).json({ error: 'Champs requis manquants' });
+      return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
     }
     
     // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
@@ -277,11 +302,11 @@ export default async function handler(req, res) {
     if (file.mimetype === 'application/pdf') {
       // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des QCM
       content = await extractTextFromPDF(file.path);
-      questions = await generateQCMFromText(content, numberOfQuestions);
+      questions = await generateQCMFromText(content, numberOfQuestions, difficultParts);
     } else if (file.mimetype.startsWith('image/')) {
       // Pour les images: analyser directement avec GPT-4o (capacité de vision)
       content = await analyzeImageWithGPT4o(file.path);
-      questions = await generateQCMFromText(content, numberOfQuestions);
+      questions = await generateQCMFromText(content, numberOfQuestions, difficultParts);
     } else {
       return res.status(400).json({ error: 'Format de fichier non pris en charge' });
     }
@@ -304,25 +329,21 @@ export default async function handler(req, res) {
     }
 
     // Stocker chaque question dans Supabase
-    for (const question of questions) {
-      const { error: questionError } = await supabase
+    const questionsPromises = questions.map(question => 
+      supabase
         .from('quiz_questions')
         .insert([
           {
             quiz_id: quiz.id,
             question: question.question,
-            correct_answer: question.correctAnswer,
-            options: JSON.stringify(question.options)
+            options: JSON.stringify(question.options),
+            correct_options: JSON.stringify(question.correctOptions),
+            explanation: question.explanation || ""
           }
-        ]);
-
-      if (questionError) {
-        throw questionError;
-      }
-    }
-
-    // Nettoyer le fichier temporaire
-    fs.unlinkSync(file.path);
+        ])
+    );
+    
+    await Promise.all(questionsPromises);
 
     return res.status(200).json({
       success: true,
@@ -332,7 +353,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('Erreur de traitement:', error);
     return res.status(500).json({ error: error.message });
   }
 }

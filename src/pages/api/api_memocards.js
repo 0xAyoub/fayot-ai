@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,15 +17,35 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_KEY || supabaseKey);
 
+// Création du dossier uploads s'il n'existe pas
+const uploadDir = './public/uploads/';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // Configuration multer pour le stockage des fichiers
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: './public/uploads/',
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Limite de 10 Mo
+  fileFilter: (req, file, cb) => {
+    // Accepter uniquement les PDF et images
+    if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format de fichier non autorisé. Seuls les PDF et images sont acceptés.'), false);
     }
-  })
+  }
 });
 
 // Fonction pour extraire le texte d'un PDF
@@ -143,17 +163,21 @@ function extractJSONFromMarkdown(text) {
 }
 
 // Fonction pour générer des mémocartes avec GPT-4o à partir de texte
-async function generateMemocardsFromText(content, numberOfCards) {
+async function generateMemocardsFromText(content, numberOfCards, difficultParts = '') {
+  const prompt = difficultParts 
+    ? `Crée ${numberOfCards} mémo cartes à partir du contenu suivant. Insiste particulièrement sur ces concepts difficiles: ${difficultParts}. Formate chaque carte comme un objet JSON avec les champs 'question' et 'answer' dans un tableau.`
+    : `Crée ${numberOfCards} mémo cartes à partir du contenu suivant. Formate chaque carte comme un objet JSON avec les champs 'question' et 'answer' dans un tableau.`;
+  
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
         role: "system",
-        content: "You are a professional educator creating flashcards for students. Create concise, clear, and educational question-answer pairs. Return ONLY the JSON array with no Markdown formatting or additional text."
+        content: "Tu es un éducateur professionnel qui crée des mémo cartes pour les étudiants. Crée des paires question-réponse concises, claires et éducatives. Retourne UNIQUEMENT le tableau JSON sans formatage Markdown ni texte supplémentaire."
       },
       {
         role: "user",
-        content: `Create ${numberOfCards} flashcards from the following content. Format each flashcard as a JSON object with 'question' and 'answer' fields within an array. No markdown formatting, just pure JSON: ${content}`
+        content: `${prompt} Contenu: ${content}`
       }
     ],
     max_tokens: 2000
@@ -246,7 +270,7 @@ async function generateMemocardsFromText(content, numberOfCards) {
 // Route API principale
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
   try {
@@ -283,11 +307,14 @@ export default async function handler(req, res) {
       });
     });
 
+    // Récupérer le fichier et les données du formulaire
     const { file } = req;
-    const { userId, numberOfCards } = req.body;
+    const userId = req.body.userId;
+    const numberOfCards = parseInt(req.body.numberOfCards) || 10;
+    const difficultParts = req.body.difficultParts || '';
 
-    if (!file || !userId || !numberOfCards) {
-      return res.status(400).json({ error: 'Champs requis manquants' });
+    if (!file || !userId) {
+      return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
     }
     
     // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
@@ -322,11 +349,11 @@ export default async function handler(req, res) {
     if (file.mimetype === 'application/pdf') {
       // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des mémocartes
       content = await extractTextFromPDF(file.path);
-      flashcards = await generateMemocardsFromText(content, numberOfCards);
+      flashcards = await generateMemocardsFromText(content, numberOfCards, difficultParts);
     } else if (file.mimetype.startsWith('image/')) {
       // Pour les images: analyser directement avec GPT-4o (capacité de vision)
       content = await analyzeImageWithGPT4o(file.path);
-      flashcards = await generateMemocardsFromText(content, numberOfCards);
+      flashcards = await generateMemocardsFromText(content, numberOfCards, difficultParts);
     } else {
       return res.status(400).json({ error: 'Format de fichier non pris en charge' });
     }
@@ -351,8 +378,8 @@ export default async function handler(req, res) {
     }
 
     // Stocker chaque mémocarte dans Supabase avec l'ID de la liste
-    for (const card of flashcards) {
-      const { error: flashcardError } = await supabase
+    const flashcardsPromises = flashcards.map(card => 
+      supabase
         .from('flashcards')
         .insert([
           {
@@ -362,15 +389,10 @@ export default async function handler(req, res) {
             question: card.question,
             answer: card.answer
           }
-        ]);
-
-      if (flashcardError) {
-        throw flashcardError;
-      }
-    }
-
-    // Nettoyer le fichier temporaire
-    fs.unlinkSync(file.path);
+        ])
+    );
+    
+    await Promise.all(flashcardsPromises);
 
     return res.status(200).json({
       success: true,
@@ -380,7 +402,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('Erreur de traitement:', error);
     return res.status(500).json({ error: error.message });
   }
 }
