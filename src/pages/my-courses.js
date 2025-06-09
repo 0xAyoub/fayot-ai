@@ -82,11 +82,11 @@ const MyCourseComponent = ({ user }) => {
   };
   
   const handleCreateCards = (courseId) => {
-    router.push(`/format-selection?courseId=${courseId}`);
+    router.push(`/format-selection?courseId=${courseId}&format=memo`);
   };
   
   const handleCreateQuiz = (courseId) => {
-    router.push(`/quiz-creation?courseId=${courseId}`);
+    router.push(`/format-selection?courseId=${courseId}&format=qcm`);
   };
   
   const handleUploadCourse = () => {

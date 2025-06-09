@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { FaArrowLeft, FaCheck, FaRedo, FaDownload, FaShareAlt, FaMagic, FaTrophy, FaRocket, FaSync, FaBrain, FaBookmark, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaRedo, FaDownload, FaShareAlt, FaMagic, FaTrophy, FaRocket, FaSync, FaBrain, FaBookmark, FaChevronLeft, FaChevronRight, FaExclamationTriangle } from 'react-icons/fa';
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { NavBarComponent } from '../../../../components/NavBarComponent';
@@ -14,8 +14,9 @@ function QcmResults({ user }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validatedQuestions, setValidatedQuestions] = useState({});
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [questions, setQuestions] = useState([]);
   const [quiz, setQuiz] = useState(null);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
@@ -29,6 +30,8 @@ function QcmResults({ user }) {
       if (!id) return;
       
       try {
+        console.log("Tentative de récupération du QCM avec ID:", id);
+        
         // Récupérer les détails du quiz
         const { data: quizData, error: quizError } = await supabase
           .from('quizzes')
@@ -36,7 +39,12 @@ function QcmResults({ user }) {
           .eq('id', id)
           .single();
         
-        if (quizError) throw quizError;
+        if (quizError) {
+          console.error("Erreur lors de la récupération du quiz:", quizError);
+          throw quizError;
+        }
+        
+        console.log("Quiz récupéré:", quizData);
         setQuiz(quizData);
         
         // Récupérer les questions associées à ce quiz
@@ -46,22 +54,81 @@ function QcmResults({ user }) {
           .eq('quiz_id', id)
           .order('id', { ascending: true });
         
-        if (questionsError) throw questionsError;
+        if (questionsError) {
+          console.error("Erreur lors de la récupération des questions:", questionsError);
+          throw questionsError;
+        }
+        
+        console.log("Questions brutes récupérées:", questionsData);
+        
+        if (!questionsData || questionsData.length === 0) {
+          console.error("Aucune question trouvée pour ce QCM");
+          setError("Aucune question trouvée pour ce QCM. Veuillez réessayer ou créer un nouveau QCM.");
+          setLoadingQuestions(false);
+          return;
+        }
         
         // Formater les questions pour l'affichage
-        const formattedQuestions = questionsData.map(question => ({
-          id: question.id,
-          question: question.question,
-          options: JSON.parse(question.options),
-          correctOptions: JSON.parse(question.correct_options),
-          explanation: question.explanation || ""
-        }));
+        const formattedQuestions = questionsData.map(question => {
+          console.log("Question brute:", question);
+          
+          try {
+            // Vérifier si options est déjà un tableau ou s'il doit être parsé
+            let parsedOptions;
+            if (typeof question.options === 'string') {
+              parsedOptions = JSON.parse(question.options);
+            } else if (Array.isArray(question.options)) {
+              parsedOptions = question.options;
+            } else {
+              console.error("Format d'options non reconnu:", question.options);
+              parsedOptions = ["Option 1", "Option 2", "Option 3", "Option 4"]; // Options par défaut
+            }
+            
+            // Vérifier si correct_options est déjà un tableau ou s'il doit être parsé
+            let parsedCorrectOptions;
+            if (typeof question.correct_options === 'string') {
+              parsedCorrectOptions = JSON.parse(question.correct_options);
+            } else if (Array.isArray(question.correct_options)) {
+              parsedCorrectOptions = question.correct_options;
+            } else {
+              console.error("Format de correct_options non reconnu:", question.correct_options);
+              parsedCorrectOptions = [0]; // Index par défaut
+            }
+            
+            console.log("Options après parsing:", parsedOptions);
+            console.log("Correct options après parsing:", parsedCorrectOptions);
+            
+            // Vérifier que les options sont un tableau non vide
+            if (!Array.isArray(parsedOptions) || parsedOptions.length === 0) {
+              throw new Error("Les options ne sont pas un tableau valide");
+            }
+            
+            return {
+              id: question.id,
+              question: question.question || "Question sans titre",
+              options: parsedOptions,
+              correctOptions: parsedCorrectOptions,
+              explanation: question.explanation || ""
+            };
+          } catch (parseError) {
+            console.error("Erreur lors du parsing des options:", parseError);
+            // Fournir des valeurs par défaut pour éviter les erreurs d'affichage
+            return {
+              id: question.id,
+              question: question.question || "Question sans titre",
+              options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+              correctOptions: [0],
+              explanation: "Erreur lors du chargement des options. " + parseError.message
+            };
+          }
+        });
         
+        console.log("Questions formatées:", formattedQuestions);
         setQuestions(formattedQuestions);
         setLoadingQuestions(false);
       } catch (error) {
         console.error('Erreur lors de la récupération du QCM:', error);
-        setError('Impossible de charger le QCM. Veuillez réessayer.');
+        setError('Impossible de charger le QCM. Veuillez réessayer. Erreur: ' + error.message);
         setLoadingQuestions(false);
       }
     };
@@ -88,10 +155,11 @@ function QcmResults({ user }) {
   };
 
   const handleOptionSelect = (optionIndex) => {
-    if (isSubmitted) return;
+    const currentQuestion = questions[currentQuestionIndex];
+    // Empêcher la sélection si la question est déjà validée
+    if (validatedQuestions[currentQuestion.id]) return;
     
     setSelectedOptions(prev => {
-      const currentQuestion = questions[currentQuestionIndex];
       const currentSelectedOptions = prev[currentQuestion.id] || [];
       
       // Si l'option est déjà sélectionnée, la retirer
@@ -112,16 +180,19 @@ function QcmResults({ user }) {
 
   const isOptionSelected = (optionIndex) => {
     const currentQuestion = questions[currentQuestionIndex];
-    if (!currentQuestion) return false;
+    if (!currentQuestion || !currentQuestion.id) return false;
     
     const selectedOptionsForQuestion = selectedOptions[currentQuestion.id] || [];
     return selectedOptionsForQuestion.includes(optionIndex);
   };
 
   const isOptionCorrect = (optionIndex) => {
-    if (!isSubmitted) return false;
-    
     const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion || !Array.isArray(currentQuestion.correctOptions)) {
+      console.error("Format invalide pour correctOptions:", currentQuestion);
+      return false;
+    }
+    
     return currentQuestion.correctOptions.includes(optionIndex);
   };
 
@@ -138,46 +209,68 @@ function QcmResults({ user }) {
   };
 
   const handleSubmit = () => {
-    if (isSubmitted) {
-      // Réinitialiser le quiz
-      setIsSubmitted(false);
-      setSelectedOptions({});
-      setScore(0);
-      setCurrentQuestionIndex(0);
-      return;
+    const currentQuestion = questions[currentQuestionIndex];
+    
+    // Si la question est déjà validée, on ne fait rien
+    if (validatedQuestions[currentQuestion.id]) return;
+    
+    // Récupérer les options sélectionnées par l'utilisateur
+    const userSelected = selectedOptions[currentQuestion.id] || [];
+    const correctOptions = currentQuestion.correctOptions;
+    
+    // Vérifier si les options sélectionnées correspondent exactement aux options correctes
+    const isCorrect = 
+      userSelected.length === correctOptions.length && 
+      userSelected.every(option => correctOptions.includes(option));
+    
+    // Mettre à jour le nombre de réponses correctes
+    if (isCorrect) {
+      setCorrectCount(prev => prev + 1);
     }
     
-    // Calculer le score
-    let totalCorrect = 0;
+    // Marquer la question comme validée
+    setValidatedQuestions(prev => ({
+      ...prev,
+      [currentQuestion.id]: true
+    }));
     
-    questions.forEach(question => {
-      const userSelected = selectedOptions[question.id] || [];
-      const correctOptions = question.correctOptions;
-      
-      // Vérifier si les options sélectionnées correspondent exactement aux options correctes
-      if (
-        userSelected.length === correctOptions.length && 
-        userSelected.every(option => correctOptions.includes(option))
-      ) {
-        totalCorrect += 1;
-      }
-    });
-    
-    const finalScore = Math.round((totalCorrect / questions.length) * 100);
-    setScore(finalScore);
-    setIsSubmitted(true);
+    // Calculer et mettre à jour le score
+    const answeredCount = Object.keys(validatedQuestions).length + 1; // +1 pour la question actuelle
+    const newScore = Math.round((correctCount + (isCorrect ? 1 : 0)) / answeredCount * 100);
+    setScore(newScore);
+  };
+
+  const isCurrentQuestionValidated = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return false;
+    return validatedQuestions[currentQuestion.id] || false;
   };
 
   const getCurrentQuestion = () => {
-    return questions[currentQuestionIndex] || { 
-      question: "Chargement...", 
-      options: ["Chargement..."], 
-      correctOptions: [], 
-      explanation: "" 
-    };
+    console.log("getCurrentQuestion - index:", currentQuestionIndex, "questions:", questions);
+    
+    if (!questions || questions.length === 0) {
+      return { 
+        question: "Aucune question disponible", 
+        options: ["Chargement..."], 
+        correctOptions: [], 
+        explanation: "Veuillez vérifier votre connexion et réessayer." 
+      };
+    }
+    
+    // S'assurer que l'index est valide
+    if (currentQuestionIndex < 0 || currentQuestionIndex >= questions.length) {
+      console.error("Index de question invalide:", currentQuestionIndex);
+      // Revenir à la première question si l'index est invalide
+      setCurrentQuestionIndex(0);
+      return questions[0];
+    }
+    
+    return questions[currentQuestionIndex];
   };
 
   const currentQuestion = getCurrentQuestion();
+  console.log("Question actuelle:", currentQuestion);
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   // Générer un PDF du QCM
@@ -221,24 +314,39 @@ function QcmResults({ user }) {
 
       {/* Contenu principal - utilisant tout l'espace vertical restant */}
       <div className="flex-grow flex flex-col mx-2">
+        {/* Quiz content or results */}
         {loadingQuestions ? (
-          <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-3xl mx-auto bg-[#ebebd7] p-6 rounded-2xl border-2 border-[#68ccff]/30 shadow-md flex flex-col items-center justify-center">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#25a1e1] mb-3"></div>
-            <p className="text-gray-700 font-semibold">Chargement du QCM...</p>
-            <p className="text-xs text-gray-500 mt-1 font-light">Nous récupérons tes questions</p>
+            <p className="text-gray-700 font-medium">Chargement du QCM...</p>
+            <p className="text-xs text-gray-500 mt-1">Nous récupérons tes questions</p>
           </div>
         ) : error ? (
-          <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-red-200 flex-grow flex flex-col items-center justify-center p-4">
-            <p className="text-red-500 font-semibold">{error}</p>
-            <button 
-              onClick={() => router.push('/format-selection')}
-              className="mt-4 bg-[#25a1e1] text-[#ebebd7] px-4 py-2 rounded-lg hover:bg-[#106996] transition-colors"
-            >
-              Réessayer
-            </button>
+          <div className="w-full max-w-3xl mx-auto bg-[#ebebd7] p-6 rounded-2xl border-2 border-red-200 shadow-md">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaExclamationTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold text-red-600 mb-3">Erreur</h2>
+              <p className="text-gray-700 mb-6">{error}</p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => router.push('/format-selection')}
+                  className="px-4 py-2 bg-[#25a1e1] text-white rounded-lg hover:bg-[#106996] transition-colors"
+                >
+                  Créer un nouveau QCM
+                </button>
+                <button
+                  onClick={() => router.back()}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Retour
+                </button>
+              </div>
+            </div>
           </div>
-        ) : (
-          <>
+        ) : questions.length > 0 ? (
+          <div className="flex-grow flex flex-col">
             {showDownload ? (
               <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col p-4">
                 <div className="flex justify-between items-center mb-3">
@@ -267,59 +375,65 @@ function QcmResults({ user }) {
                 {/* Question et options */}
                 <div className="flex-grow flex flex-col">
                   <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 p-4 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">{currentQuestion.question}</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">{currentQuestion.question || "Question sans titre"}</h3>
                     
                     <div className="space-y-2">
-                      {currentQuestion.options.map((option, index) => (
-                        <div 
-                          key={index}
-                          onClick={() => handleOptionSelect(index)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all duration-200
-                            ${isOptionSelected(index) && !isSubmitted 
-                              ? 'bg-[#68ccff]/20 border-[#25a1e1]' 
-                              : isSubmitted && isOptionCorrect(index) && isOptionSelected(index)
-                                ? 'bg-green-100 border-green-500'
-                                : isSubmitted && isOptionCorrect(index)
-                                  ? 'bg-green-50 border-green-300'
-                                  : isSubmitted && isOptionSelected(index)
-                                    ? 'bg-red-100 border-red-500'
-                                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                            }`}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-6 h-6 flex-shrink-0 rounded-full border flex items-center justify-center mr-3
-                              ${isOptionSelected(index) && !isSubmitted 
-                                ? 'border-[#25a1e1] bg-[#68ccff]/10' 
-                                : isSubmitted && isOptionCorrect(index)
-                                  ? 'border-green-500 bg-green-100'
-                                  : isSubmitted && isOptionSelected(index)
-                                    ? 'border-red-500 bg-red-100'
-                                    : 'border-gray-300 bg-white'
+                      {Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0 ? (
+                        currentQuestion.options.map((option, index) => (
+                          <div 
+                            key={index}
+                            onClick={() => handleOptionSelect(index)}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all duration-200
+                              ${isOptionSelected(index) && !isCurrentQuestionValidated() 
+                                ? 'bg-[#68ccff]/20 border-[#25a1e1]' 
+                                : isCurrentQuestionValidated() && isOptionCorrect(index) && isOptionSelected(index)
+                                  ? 'bg-green-100 border-green-500'
+                                  : isCurrentQuestionValidated() && isOptionCorrect(index)
+                                    ? 'bg-green-50 border-green-300'
+                                    : isCurrentQuestionValidated() && isOptionSelected(index)
+                                      ? 'bg-red-100 border-red-500'
+                                      : 'bg-white border-gray-200 hover:bg-gray-50'
                               }`}
-                            >
-                              {isOptionSelected(index) && !isSubmitted && (
-                                <div className="w-3 h-3 rounded-full bg-[#25a1e1]"></div>
-                              )}
-                              {isSubmitted && isOptionCorrect(index) && (
-                                <FaCheck className="w-3 h-3 text-green-500" />
-                              )}
+                          >
+                            <div className="flex items-center">
+                              <div className={`w-6 h-6 flex-shrink-0 rounded-full border flex items-center justify-center mr-3
+                                ${isOptionSelected(index) && !isCurrentQuestionValidated() 
+                                  ? 'border-[#25a1e1] bg-[#68ccff]/10' 
+                                  : isCurrentQuestionValidated() && isOptionCorrect(index)
+                                    ? 'border-green-500 bg-green-100'
+                                    : isCurrentQuestionValidated() && isOptionSelected(index)
+                                      ? 'border-red-500 bg-red-100'
+                                      : 'border-gray-300 bg-white'
+                                }`}
+                              >
+                                {isOptionSelected(index) && !isCurrentQuestionValidated() && (
+                                  <div className="w-3 h-3 rounded-full bg-[#25a1e1]"></div>
+                                )}
+                                {isCurrentQuestionValidated() && isOptionCorrect(index) && (
+                                  <FaCheck className="w-3 h-3 text-green-500" />
+                                )}
+                              </div>
+                              <span className={`text-sm
+                                ${isCurrentQuestionValidated() && isOptionCorrect(index)
+                                  ? 'font-medium text-green-700'
+                                  : isCurrentQuestionValidated() && isOptionSelected(index)
+                                    ? 'font-medium text-red-700'
+                                    : 'text-gray-700'
+                                }`}
+                              >
+                                {option || "Option sans texte"}
+                              </span>
                             </div>
-                            <span className={`text-sm
-                              ${isSubmitted && isOptionCorrect(index)
-                                ? 'font-medium text-green-700'
-                                : isSubmitted && isOptionSelected(index)
-                                  ? 'font-medium text-red-700'
-                                  : 'text-gray-700'
-                              }`}
-                            >
-                              {option}
-                            </span>
                           </div>
+                        ))
+                      ) : (
+                        <div className="p-3 rounded-lg border border-yellow-300 bg-yellow-50">
+                          <p className="text-yellow-800">Aucune option disponible pour cette question.</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                     
-                    {isSubmitted && currentQuestion.explanation && (
+                    {isCurrentQuestionValidated() && currentQuestion.explanation && (
                       <div className="mt-4 p-3 bg-[#68ccff]/10 rounded-lg border border-[#68ccff]/30">
                         <h4 className="font-medium text-[#106996] text-sm mb-1">Explication:</h4>
                         <p className="text-sm text-gray-600">{currentQuestion.explanation}</p>
@@ -328,7 +442,7 @@ function QcmResults({ user }) {
                   </div>
 
                   {/* Affichage du score si le quiz est terminé */}
-                  {isSubmitted && (
+                  {isCurrentQuestionValidated() && (
                     <div className="bg-[#ebebd7] rounded-xl p-3 border border-[#68ccff]/30 mb-2">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="font-medium text-gray-800 text-sm">Ton score:</h4>
@@ -371,8 +485,8 @@ function QcmResults({ user }) {
                     <button 
                       onClick={goToNextQuestion}
                       disabled={currentQuestionIndex === questions.length - 1}
-                      className={`w-10 h-10 bg-[#25a1e1] text-[#ebebd7] rounded-full flex items-center justify-center shadow-md transition-all duration-300
-                        ${currentQuestionIndex === questions.length - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#106996]'}`}
+                      className={`w-10 h-10 ${isCurrentQuestionValidated() ? 'bg-[#25a1e1]' : 'bg-gray-300'} text-[#ebebd7] rounded-full flex items-center justify-center shadow-md transition-all duration-300
+                        ${currentQuestionIndex === questions.length - 1 ? 'opacity-50 cursor-not-allowed' : isCurrentQuestionValidated() ? 'hover:bg-[#106996]' : 'cursor-not-allowed'}`}
                     >
                       <FaChevronRight className="w-4 h-4" />
                     </button>
@@ -382,34 +496,69 @@ function QcmResults({ user }) {
                   <div className="grid grid-cols-2 gap-2">
                     <button 
                       className="bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-sm hover:bg-[#68ccff]/10"
-                      onClick={() => isSubmitted ? handleSubmit() : setShowDownload(true)}
+                      onClick={() => setShowDownload(true)}
                     >
-                      {isSubmitted ? (
-                        <>
-                          <FaRedo className="w-3 h-3 mr-1.5" />
-                          <span className="font-semibold">Recommencer</span>
-                        </>
+                      <FaDownload className="w-3 h-3 mr-1.5" />
+                      <span className="font-semibold">Télécharger</span>
+                    </button>
+                    
+                    {isCurrentQuestionValidated() ? (
+                      currentQuestionIndex < questions.length - 1 ? (
+                        <button 
+                          onClick={goToNextQuestion}
+                          className="bg-[#25a1e1] text-[#ebebd7] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md hover:bg-[#106996]"
+                        >
+                          <FaChevronRight className="w-3 h-3 mr-1.5" />
+                          <span className="font-bold">Question suivante</span>
+                        </button>
                       ) : (
-                        <>
-                          <FaDownload className="w-3 h-3 mr-1.5" />
-                          <span className="font-semibold">Télécharger</span>
-                        </>
-                      )}
-                    </button>
-                    <button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitted}
-                      className={`bg-[#25a1e1] text-[#ebebd7] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md
-                        ${isSubmitted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#106996]'}`}
-                    >
-                      <FaCheck className="w-3 h-3 mr-1.5" />
-                      <span className="font-bold">Valider</span>
-                    </button>
+                        <button 
+                          className="bg-green-500 text-white rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md hover:bg-green-600"
+                        >
+                          <FaTrophy className="w-3 h-3 mr-1.5" />
+                          <span className="font-bold">Terminer</span>
+                        </button>
+                      )
+                    ) : (
+                      <button 
+                        onClick={handleSubmit}
+                        className="bg-[#25a1e1] text-[#ebebd7] rounded-xl py-2 px-3 text-sm font-medium flex items-center justify-center shadow-md hover:bg-[#106996]"
+                      >
+                        <FaCheck className="w-3 h-3 mr-1.5" />
+                        <span className="font-bold">Valider</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </>
             )}
-          </>
+          </div>
+        ) : (
+          <div className="w-full max-w-3xl mx-auto bg-[#ebebd7] p-6 rounded-2xl border-2 border-[#68ccff]/30 shadow-md">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaExclamationTriangle className="w-8 h-8 text-yellow-500" />
+              </div>
+              <h2 className="text-xl font-bold text-[#106996] mb-3">Aucune question disponible</h2>
+              <p className="text-gray-700 mb-6">
+                Nous n'avons pas pu trouver de questions pour ce QCM. Cela peut être dû à un problème lors de la génération du QCM.
+              </p>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => router.push('/format-selection')}
+                  className="px-4 py-2 bg-[#25a1e1] text-white rounded-lg hover:bg-[#106996] transition-colors"
+                >
+                  Créer un nouveau QCM
+                </button>
+                <button
+                  onClick={() => router.back()}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Retour
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -438,33 +587,40 @@ function QcmResults({ user }) {
         
         {/* Actions déplacées ici */}
         <div className="flex space-x-2">
-          {isSubmitted ? (
-            <button 
-              className="bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-sm hover:bg-[#68ccff]/10 hover:scale-105 transition-all duration-300"
-              onClick={handleSubmit}
-            >
-              <FaRedo className="w-3 h-3 mr-2" />
-              Recommencer
-            </button>
+          <button 
+            className="bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-sm hover:bg-[#68ccff]/10 hover:scale-105 transition-all duration-300"
+            onClick={() => setShowDownload(true)}
+          >
+            <FaDownload className="w-3 h-3 mr-2" />
+            Télécharger
+          </button>
+          
+          {isCurrentQuestionValidated() ? (
+            currentQuestionIndex < questions.length - 1 ? (
+              <button 
+                onClick={goToNextQuestion}
+                className="bg-[#25a1e1] text-[#ebebd7] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-[#106996] hover:scale-105 transition-all duration-300"
+              >
+                <FaChevronRight className="w-3 h-3 mr-2" />
+                Question suivante
+              </button>
+            ) : (
+              <button 
+                className="bg-green-500 text-white rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-green-600 hover:scale-105 transition-all duration-300"
+              >
+                <FaTrophy className="w-3 h-3 mr-2" />
+                Terminer
+              </button>
+            )
           ) : (
             <button 
-              onClick={() => setShowDownload(true)}
-              className="bg-[#ebebd7] border border-[#68ccff]/30 text-[#25a1e1] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-sm hover:bg-[#68ccff]/10 hover:scale-105 transition-all duration-300"
+              onClick={handleSubmit}
+              className="bg-[#25a1e1] text-[#ebebd7] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-[#106996] hover:scale-105 transition-all duration-300"
             >
-              <FaDownload className="w-3 h-3 mr-2" />
-              Télécharger
+              <FaCheck className="w-3 h-3 mr-2" />
+              Valider
             </button>
           )}
-          
-          <button 
-            onClick={handleSubmit}
-            disabled={isSubmitted}
-            className={`bg-[#25a1e1] text-[#ebebd7] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-[#106996] hover:scale-105 transition-all duration-300
-              ${isSubmitted ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <FaCheck className="w-3 h-3 mr-2" />
-            Valider
-          </button>
           
           <button 
             className="bg-[#106996] text-[#ebebd7] rounded-lg py-2 px-3 text-sm font-medium flex items-center shadow-md hover:bg-[#25a1e1] hover:scale-105 transition-all duration-300"
@@ -479,79 +635,101 @@ function QcmResults({ user }) {
       <div className="flex flex-1 gap-4 h-[calc(100%-3rem)] overflow-hidden">
         {/* Main central section with questions */}
         <div className="flex-1 flex flex-col rounded-2xl">
+          {/* Quiz content or results */}
           {loadingQuestions ? (
-            <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 flex-grow flex flex-col items-center justify-center p-4">
+            <div className="w-full max-w-3xl mx-auto bg-[#ebebd7] p-6 rounded-2xl border-2 border-[#68ccff]/30 shadow-md flex flex-col items-center justify-center">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#25a1e1] mb-3"></div>
               <p className="text-gray-700 font-medium">Chargement du QCM...</p>
               <p className="text-xs text-gray-500 mt-1">Nous récupérons tes questions</p>
             </div>
           ) : error ? (
-            <div className="bg-[#ebebd7] rounded-2xl shadow-md border border-red-200 flex-grow flex flex-col items-center justify-center p-4">
-              <p className="text-red-500 font-semibold">{error}</p>
-              <button 
-                onClick={() => router.push('/format-selection')}
-                className="mt-4 bg-[#25a1e1] text-[#ebebd7] px-4 py-2 rounded-lg hover:bg-[#106996] transition-colors"
-              >
-                Réessayer
-              </button>
+            <div className="w-full max-w-3xl mx-auto bg-[#ebebd7] p-6 rounded-2xl border-2 border-red-200 shadow-md">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaExclamationTriangle className="w-8 h-8 text-red-500" />
+                </div>
+                <h2 className="text-xl font-bold text-red-600 mb-3">Erreur</h2>
+                <p className="text-gray-700 mb-6">{error}</p>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => router.push('/format-selection')}
+                    className="px-4 py-2 bg-[#25a1e1] text-white rounded-lg hover:bg-[#106996] transition-colors"
+                  >
+                    Créer un nouveau QCM
+                  </button>
+                  <button
+                    onClick={() => router.back()}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Retour
+                  </button>
+                </div>
+              </div>
             </div>
-          ) : (
+          ) : questions.length > 0 ? (
             <div className="flex-grow flex flex-col bg-[#ebebd7] rounded-2xl shadow-md border border-[#68ccff]/30 overflow-hidden">
               {/* Question et options */}
               <div className="flex-grow overflow-auto p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">{currentQuestion.question}</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">{currentQuestion.question || "Question sans titre"}</h2>
                 
                 <div className="space-y-3 mb-6">
-                  {currentQuestion.options.map((option, index) => (
-                    <div 
-                      key={index}
-                      onClick={() => handleOptionSelect(index)}
-                      className={`p-4 rounded-lg border cursor-pointer transition-all duration-200
-                        ${isOptionSelected(index) && !isSubmitted 
-                          ? 'bg-[#68ccff]/20 border-[#25a1e1]' 
-                          : isSubmitted && isOptionCorrect(index) && isOptionSelected(index)
-                            ? 'bg-green-100 border-green-500'
-                            : isSubmitted && isOptionCorrect(index)
-                              ? 'bg-green-50 border-green-300'
-                              : isSubmitted && isOptionSelected(index)
-                                ? 'bg-red-100 border-red-500'
-                                : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                    >
-                      <div className="flex items-center">
-                        <div className={`w-7 h-7 flex-shrink-0 rounded-full border flex items-center justify-center mr-4
-                          ${isOptionSelected(index) && !isSubmitted 
-                            ? 'border-[#25a1e1] bg-[#68ccff]/10' 
-                            : isSubmitted && isOptionCorrect(index)
-                              ? 'border-green-500 bg-green-100'
-                              : isSubmitted && isOptionSelected(index)
-                                ? 'border-red-500 bg-red-100'
-                                : 'border-gray-300 bg-white'
+                  {Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0 ? (
+                    currentQuestion.options.map((option, index) => (
+                      <div 
+                        key={index}
+                        onClick={() => handleOptionSelect(index)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200
+                          ${isOptionSelected(index) && !isCurrentQuestionValidated() 
+                            ? 'bg-[#68ccff]/20 border-[#25a1e1]' 
+                            : isCurrentQuestionValidated() && isOptionCorrect(index) && isOptionSelected(index)
+                              ? 'bg-green-100 border-green-500'
+                              : isCurrentQuestionValidated() && isOptionCorrect(index)
+                                ? 'bg-green-50 border-green-300'
+                                : isCurrentQuestionValidated() && isOptionSelected(index)
+                                  ? 'bg-red-100 border-red-500'
+                                  : 'bg-white border-gray-200 hover:bg-gray-50'
                           }`}
-                        >
-                          {isOptionSelected(index) && !isSubmitted && (
-                            <div className="w-3.5 h-3.5 rounded-full bg-[#25a1e1]"></div>
-                          )}
-                          {isSubmitted && isOptionCorrect(index) && (
-                            <FaCheck className="w-3.5 h-3.5 text-green-500" />
-                          )}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-7 h-7 flex-shrink-0 rounded-full border flex items-center justify-center mr-4
+                            ${isOptionSelected(index) && !isCurrentQuestionValidated() 
+                              ? 'border-[#25a1e1] bg-[#68ccff]/10' 
+                              : isCurrentQuestionValidated() && isOptionCorrect(index)
+                                ? 'border-green-500 bg-green-100'
+                                : isCurrentQuestionValidated() && isOptionSelected(index)
+                                  ? 'border-red-500 bg-red-100'
+                                  : 'border-gray-300 bg-white'
+                            }`}
+                          >
+                            {isOptionSelected(index) && !isCurrentQuestionValidated() && (
+                              <div className="w-3.5 h-3.5 rounded-full bg-[#25a1e1]"></div>
+                            )}
+                            {isCurrentQuestionValidated() && isOptionCorrect(index) && (
+                              <FaCheck className="w-3.5 h-3.5 text-green-500" />
+                            )}
+                          </div>
+                          <span className={`text-base
+                            ${isCurrentQuestionValidated() && isOptionCorrect(index)
+                              ? 'font-medium text-green-700'
+                              : isCurrentQuestionValidated() && isOptionSelected(index)
+                                ? 'font-medium text-red-700'
+                                : 'text-gray-700'
+                            }`}
+                          >
+                            {option || "Option sans texte"}
+                          </span>
                         </div>
-                        <span className={`text-base
-                          ${isSubmitted && isOptionCorrect(index)
-                            ? 'font-medium text-green-700'
-                            : isSubmitted && isOptionSelected(index)
-                              ? 'font-medium text-red-700'
-                              : 'text-gray-700'
-                          }`}
-                        >
-                          {option}
-                        </span>
                       </div>
+                    ))
+                  ) : (
+                    <div className="p-4 rounded-lg border border-yellow-300 bg-yellow-50">
+                      <p className="text-yellow-800 font-medium">Aucune option disponible pour cette question.</p>
+                      <p className="text-yellow-700 text-sm mt-1">Veuillez vérifier le format des données ou recréer le QCM.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 
-                {isSubmitted && currentQuestion.explanation && (
+                {isCurrentQuestionValidated() && currentQuestion.explanation && (
                   <div className="p-4 bg-[#68ccff]/10 rounded-lg border border-[#68ccff]/30">
                     <h4 className="font-medium text-[#106996] text-base mb-2">Explication:</h4>
                     <p className="text-gray-700">{currentQuestion.explanation}</p>
@@ -582,11 +760,37 @@ function QcmResults({ user }) {
                   
                   <button 
                     onClick={goToNextQuestion}
-                    disabled={currentQuestionIndex === questions.length - 1}
-                    className={`w-10 h-10 bg-[#25a1e1] text-[#ebebd7] rounded-full flex items-center justify-center shadow-md transition-all duration-300
-                      ${currentQuestionIndex === questions.length - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#106996]'}`}
+                    disabled={currentQuestionIndex === questions.length - 1 || !isCurrentQuestionValidated()}
+                    className={`w-10 h-10 ${isCurrentQuestionValidated() ? 'bg-[#25a1e1]' : 'bg-gray-300'} text-[#ebebd7] rounded-full flex items-center justify-center shadow-md transition-all duration-300
+                      ${currentQuestionIndex === questions.length - 1 ? 'opacity-50 cursor-not-allowed' : isCurrentQuestionValidated() ? 'hover:bg-[#106996]' : 'cursor-not-allowed'}`}
                   >
                     <FaChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-3xl mx-auto bg-[#ebebd7] p-6 rounded-2xl border-2 border-[#68ccff]/30 shadow-md">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaExclamationTriangle className="w-8 h-8 text-yellow-500" />
+                </div>
+                <h2 className="text-xl font-bold text-[#106996] mb-3">Aucune question disponible</h2>
+                <p className="text-gray-700 mb-6">
+                  Nous n'avons pas pu trouver de questions pour ce QCM. Cela peut être dû à un problème lors de la génération du QCM.
+                </p>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => router.push('/format-selection')}
+                    className="px-4 py-2 bg-[#25a1e1] text-white rounded-lg hover:bg-[#106996] transition-colors"
+                  >
+                    Créer un nouveau QCM
+                  </button>
+                  <button
+                    onClick={() => router.back()}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Retour
                   </button>
                 </div>
               </div>
@@ -609,7 +813,7 @@ function QcmResults({ user }) {
               </div>
             </div>
             
-            {isSubmitted && (
+            {isCurrentQuestionValidated() && (
               <div className="bg-[#68ccff]/10 rounded-lg p-3 flex items-start">
                 <FaTrophy className="w-4 h-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
                 <div>

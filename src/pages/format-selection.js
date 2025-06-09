@@ -24,6 +24,7 @@ const getFileIcon = (type) => {
 
 function FormatSelection({ user }) {
   const router = useRouter();
+  const { courseId, format } = router.query;
   const fileInputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,6 +36,56 @@ function FormatSelection({ user }) {
   const [importedFile, setImportedFile] = useState(null);
   const [fileError, setFileError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // Définir le format sélectionné depuis l'URL
+  useEffect(() => {
+    if (format && (format === 'memo' || format === 'qcm')) {
+      setSelectedFormat(format);
+    }
+  }, [format]);
+  
+  // Vérifier si un courseId est fourni et charger le fichier correspondant
+  useEffect(() => {
+    const fetchCourseFile = async () => {
+      if (!courseId) return;
+      
+      try {
+        // Récupérer les détails du document depuis Supabase
+        const { data: document, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('id', courseId)
+          .single();
+        
+        if (error) throw error;
+        
+        // Récupérer le fichier depuis le chemin stocké
+        const filePath = document.file_path;
+        const fileName = document.title;
+        const fileType = document.file_type;
+        
+        // Vous devriez implémenter ici la logique pour récupérer le fichier réel
+        // Pour l'instant, nous allons simuler l'importation du fichier
+        
+        // Formater comme si l'utilisateur avait importé le fichier
+        setImportedFile({
+          name: fileName,
+          type: fileType === 'pdf' ? 'pdf' : 'image',
+          size: `${(document.file_size / (1024 * 1024)).toFixed(2)} MB`,
+          date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+          documentId: document.id // Stocker l'ID du document pour référence
+        });
+        
+      } catch (error) {
+        console.error('Erreur lors de la récupération du fichier:', error);
+        setFileError('Impossible de charger le fichier associé au cours.');
+      }
+    };
+    
+    if (courseId) {
+      fetchCourseFile();
+    }
+  }, [courseId]);
   
   // Check if we're on mobile
   useEffect(() => {
@@ -58,7 +109,6 @@ function FormatSelection({ user }) {
     if (format === 'memo' || format === 'qcm') {
       setSelectedFormat(format);
     }
-    // Option QCM maintenant activée
   };
 
   const handleFileUpload = (e) => {
@@ -116,13 +166,41 @@ function FormatSelection({ user }) {
       
       const token = session.access_token;
       
-      // Créer un objet FormData pour envoyer le fichier
-      const formData = new FormData();
-      formData.append('file', importedFile.file);
-      formData.append('userId', user.id);
-      formData.append('numberOfCards', cardCount);
-      if (difficultParts) {
-        formData.append('difficultParts', difficultParts);
+      let requestData;
+      
+      // Si nous avons un documentId (venant de my-courses), on l'utilise directement
+      if (importedFile.documentId) {
+        // Créer un objet FormData avec l'ID du document existant
+        requestData = {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            documentId: importedFile.documentId,
+            userId: user.id,
+            numberOfCards: cardCount,
+            difficultParts: difficultParts || ''
+          })
+        };
+      } else {
+        // Sinon, on envoie le fichier comme avant
+        const formData = new FormData();
+        formData.append('file', importedFile.file);
+        formData.append('userId', user.id);
+        formData.append('numberOfCards', cardCount);
+        if (difficultParts) {
+          formData.append('difficultParts', difficultParts);
+        }
+        
+        requestData = {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        };
       }
       
       setUploadProgress(30);
@@ -130,13 +208,7 @@ function FormatSelection({ user }) {
       // Appeler l'API appropriée en fonction du format sélectionné
       const endpoint = selectedFormat === 'memo' ? '/api/api_memocards' : '/api/api_qcm';
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const response = await fetch(endpoint, requestData);
       
       setUploadProgress(70);
       
@@ -235,21 +307,25 @@ function FormatSelection({ user }) {
           <div className="space-y-2">
             {/* Mémocards */}
             <div 
-              className="border-2 border-[#25a1e1] ring-2 ring-[#68ccff]/30 rounded-lg p-2 flex items-center shadow-sm cursor-pointer"
+              className={`${selectedFormat === 'memo' 
+                ? 'border-2 border-[#25a1e1] ring-2 ring-[#68ccff]/30' 
+                : 'border border-gray-200'} rounded-lg p-2 flex items-center shadow-sm cursor-pointer`}
               onClick={() => handleFormatSelect('memo')}
             >
-              <div className="w-8 h-8 bg-[#68ccff]/20 rounded-full flex items-center justify-center mr-2">
-                <BsCardHeading className="w-4 h-4 text-[#25a1e1]" />
+              <div className={`w-8 h-8 ${selectedFormat === 'memo' ? 'bg-[#68ccff]/20' : 'bg-gray-100'} rounded-full flex items-center justify-center mr-2`}>
+                <BsCardHeading className={`w-4 h-4 ${selectedFormat === 'memo' ? 'text-[#25a1e1]' : 'text-gray-500'}`} />
               </div>
               <div className="flex-grow">
                 <h4 className="text-sm font-semibold text-gray-800">mémo cartes</h4>
                 <p className="text-xs text-gray-600 font-medium">Pour réviser efficacement</p>
               </div>
-              <div className="w-5 h-5 bg-[#25a1e1] rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#ebebd7]" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
+              {selectedFormat === 'memo' && (
+                <div className="w-5 h-5 bg-[#25a1e1] rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#ebebd7]" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
             
             {/* QCM désactivé - MODIFIÉ POUR ACTIVER */}
@@ -431,23 +507,27 @@ function FormatSelection({ user }) {
           <h2 className="text-lg font-bold text-gray-800 mb-4">Format d'étude</h2>
           
           <div 
-            className="border-2 border-[#25a1e1] ring-2 ring-[#68ccff]/30 rounded-xl p-4 shadow-md flex items-center cursor-pointer"
+            className={`${selectedFormat === 'memo' 
+              ? 'border-2 border-[#25a1e1] ring-2 ring-[#68ccff]/30' 
+              : 'border border-gray-200'} rounded-xl p-4 shadow-md flex items-center cursor-pointer`}
             onClick={() => handleFormatSelect('memo')}
           >
-            <div className="w-12 h-12 bg-[#68ccff]/20 rounded-full flex items-center justify-center mr-4 shadow-sm">
-              <BsCardHeading className="w-6 h-6 text-[#25a1e1]" />
+            <div className={`w-12 h-12 ${selectedFormat === 'memo' ? 'bg-[#68ccff]/20' : 'bg-gray-100'} rounded-full flex items-center justify-center mr-4 shadow-sm`}>
+              <BsCardHeading className={`w-6 h-6 ${selectedFormat === 'memo' ? 'text-[#25a1e1]' : 'text-gray-600'}`} />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-800">mémo cartes</h3>
               <p className="text-sm text-gray-600 font-medium">Parfaites pour réviser efficacement</p>
             </div>
-            <div className="ml-auto">
-              <div className="w-6 h-6 bg-[#25a1e1] rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#ebebd7]" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
+            {selectedFormat === 'memo' && (
+              <div className="ml-auto">
+                <div className="w-6 h-6 bg-[#25a1e1] rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#ebebd7]" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           {/* QCM version desktop - MODIFIÉ POUR ACTIVER */}

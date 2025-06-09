@@ -298,65 +298,126 @@ export default async function handler(req, res) {
     if (userError || !userData || !userData.user) {
       return res.status(401).json({ error: 'Non autorisé: Utilisateur non authentifié' });
     }
-    
-    // Middleware multer pour gérer le téléchargement de fichier
-    await new Promise((resolve, reject) => {
-      upload.single('file')(req, res, (err) => {
-        if (err) reject(err);
-        resolve();
-      });
-    });
 
-    // Récupérer le fichier et les données du formulaire
-    const { file } = req;
-    const userId = req.body.userId;
-    const numberOfCards = parseInt(req.body.numberOfCards) || 10;
-    const difficultParts = req.body.difficultParts || '';
-
-    if (!file || !userId) {
-      return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
-    }
-    
-    // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
-    if (userId !== userData.user.id) {
-      return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
-    }
-
-    // Extraire le contenu selon le type de fichier
+    let document;
     let content = '';
     let flashcards = [];
-    
-    // Stocker le document dans Supabase
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .insert([
-        {
-          user_id: userId,
-          title: file.originalname,
-          file_path: file.path,
-          file_size: file.size,
-          file_type: file.mimetype.split('/')[1]
-        }
-      ])
-      .select()
-      .single();
+    let userId;
+    let numberOfCards;
+    let difficultParts = '';
 
-    if (documentError) {
-      throw documentError;
-    }
-    
-    // Traitement spécifique selon le type de fichier
-    if (file.mimetype === 'application/pdf') {
-      // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des mémocartes
-      content = await extractTextFromPDF(file.path);
-      flashcards = await generateMemocardsFromText(content, numberOfCards, difficultParts);
-    } else if (file.mimetype.startsWith('image/')) {
-      // Pour les images: analyser directement avec GPT-4o (capacité de vision)
-      content = await analyzeImageWithGPT4o(file.path);
-      flashcards = await generateMemocardsFromText(content, numberOfCards, difficultParts);
+    // Déterminer si nous avons un document existant ou un nouveau fichier
+    if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+      // Traitement d'un document existant
+      // Puisque bodyParser est désactivé, nous devons analyser manuellement le JSON
+      const rawBody = await new Promise((resolve) => {
+        let data = '';
+        req.on('data', (chunk) => {
+          data += chunk;
+        });
+        req.on('end', () => {
+          resolve(data);
+        });
+      });
+      
+      const body = JSON.parse(rawBody);
+      userId = body.userId;
+      numberOfCards = parseInt(body.numberOfCards) || 10;
+      difficultParts = body.difficultParts || '';
+      const documentId = body.documentId;
+
+      if (!documentId || !userId) {
+        return res.status(400).json({ error: 'ID du document ou ID utilisateur manquant' });
+      }
+
+      // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
+      if (userId !== userData.user.id) {
+        return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
+      }
+
+      // Récupérer le document depuis Supabase
+      const { data: existingDocument, error: documentError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', documentId)
+        .single();
+
+      if (documentError) {
+        throw documentError;
+      }
+
+      document = existingDocument;
+
+      // Extraire le contenu selon le type de fichier
+      if (document.file_type === 'pdf') {
+        // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des mémocartes
+        content = await extractTextFromPDF(document.file_path);
+      } else if (document.file_type.startsWith('image')) {
+        // Pour les images: analyser directement avec GPT-4o (capacité de vision)
+        content = await analyzeImageWithGPT4o(document.file_path);
+      } else {
+        return res.status(400).json({ error: 'Format de fichier non pris en charge' });
+      }
     } else {
-      return res.status(400).json({ error: 'Format de fichier non pris en charge' });
+      // Traitement d'un nouveau fichier
+      // Middleware multer pour gérer le téléchargement de fichier
+      await new Promise((resolve, reject) => {
+        upload.single('file')(req, res, (err) => {
+          if (err) reject(err);
+          resolve();
+        });
+      });
+
+      // Récupérer le fichier et les données du formulaire
+      const { file } = req;
+      userId = req.body.userId;
+      numberOfCards = parseInt(req.body.numberOfCards) || 10;
+      difficultParts = req.body.difficultParts || '';
+
+      if (!file || !userId) {
+        return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
+      }
+      
+      // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
+      if (userId !== userData.user.id) {
+        return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
+      }
+
+      // Stocker le document dans Supabase
+      const { data: newDocument, error: documentError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            user_id: userId,
+            title: file.originalname,
+            file_path: file.path,
+            file_size: file.size,
+            file_type: file.mimetype.split('/')[1]
+          }
+        ])
+        .select()
+        .single();
+
+      if (documentError) {
+        throw documentError;
+      }
+
+      document = newDocument;
+      
+      // Traitement spécifique selon le type de fichier
+      if (file.mimetype === 'application/pdf') {
+        // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des mémocartes
+        content = await extractTextFromPDF(file.path);
+      } else if (file.mimetype.startsWith('image/')) {
+        // Pour les images: analyser directement avec GPT-4o (capacité de vision)
+        content = await analyzeImageWithGPT4o(file.path);
+      } else {
+        return res.status(400).json({ error: 'Format de fichier non pris en charge' });
+      }
     }
+
+    // Générer les mémocartes à partir du contenu
+    flashcards = await generateMemocardsFromText(content, numberOfCards, difficultParts);
 
     // Créer une nouvelle liste de flashcards
     const { data: flashcardList, error: listError } = await supabase
@@ -365,8 +426,8 @@ export default async function handler(req, res) {
         {
           user_id: userId,
           document_id: document.id,
-          title: `Mémocartes - ${file.originalname}`,
-          description: `Liste de mémocartes générée à partir de ${file.originalname}`,
+          title: `Mémocartes - ${document.title}`,
+          description: `Liste de mémocartes générée à partir de ${document.title}`,
           card_count: flashcards.length
         }
       ])

@@ -1,64 +1,81 @@
--- Création des tables principales
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Table pour stocker les documents importés
-CREATE TABLE documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  file_path TEXT NOT NULL,
-  file_size INTEGER NOT NULL,
-  file_type TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.documents (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  file_path text NOT NULL,
+  file_size integer NOT NULL,
+  file_type text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT documents_pkey PRIMARY KEY (id),
+  CONSTRAINT documents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Table pour stocker les mémocartes
-CREATE TABLE flashcards (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
-  question TEXT NOT NULL,
-  answer TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.flashcard_lists (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  document_id uuid,
+  title text NOT NULL,
+  description text,
+  card_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT flashcard_lists_pkey PRIMARY KEY (id),
+  CONSTRAINT flashcard_lists_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.documents(id),
+  CONSTRAINT flashcard_lists_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Table pour stocker les quiz
-CREATE TABLE quizzes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.flashcards (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  document_id uuid,
+  question text NOT NULL,
+  answer text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  list_id uuid,
+  CONSTRAINT flashcards_pkey PRIMARY KEY (id),
+  CONSTRAINT flashcards_list_id_fkey FOREIGN KEY (list_id) REFERENCES public.flashcard_lists(id),
+  CONSTRAINT flashcards_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.documents(id),
+  CONSTRAINT flashcards_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Table pour stocker les questions de quiz
-CREATE TABLE quiz_questions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  quiz_id UUID NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
-  question TEXT NOT NULL,
-  correct_answer TEXT NOT NULL,
-  options JSONB, -- Pour stocker les options de réponse multiples
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.quiz_questions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  quiz_id uuid NOT NULL,
+  question text NOT NULL,
+  correct_answer text NOT NULL,
+  options jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT quiz_questions_pkey PRIMARY KEY (id),
+  CONSTRAINT quiz_questions_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.quizzes(id)
 );
-
--- Table pour stocker les informations d'abonnement
-CREATE TABLE user_subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  subscription_type TEXT NOT NULL, -- 'free', 'premium', 'pro', etc.
-  is_active BOOLEAN DEFAULT TRUE,
-  start_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  end_date TIMESTAMP WITH TIME ZONE,
-  flashcards_generated INTEGER DEFAULT 0,
-  quiz_questions_generated INTEGER DEFAULT 0,
-  documents_uploaded INTEGER DEFAULT 0,
-  storage_used BIGINT DEFAULT 0, -- en octets
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id)
+CREATE TABLE public.quizzes (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT quizzes_pkey PRIMARY KEY (id),
+  CONSTRAINT quizzes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_subscriptions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL UNIQUE,
+  subscription_type text NOT NULL,
+  is_active boolean DEFAULT true,
+  start_date timestamp with time zone DEFAULT now(),
+  end_date timestamp with time zone,
+  flashcards_generated integer DEFAULT 0,
+  quiz_questions_generated integer DEFAULT 0,
+  documents_uploaded integer DEFAULT 0,
+  storage_used bigint DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT user_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Activer RLS sur toutes les tables
