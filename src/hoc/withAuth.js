@@ -26,10 +26,12 @@ export const withAuth = (Component, options = {}) => {
     return <Component {...props} user={user} />;
   };
 
-  // Copier les méthodes getServerSideProps, getStaticProps, etc. si elles existent
+  // Ne copier que getInitialProps pour éviter les conflits
   if (Component.getInitialProps) {
     AuthProtected.getInitialProps = Component.getInitialProps;
   }
+  
+  // Ne pas copier getStaticProps et getServerSideProps pour éviter les conflits
 
   return AuthProtected;
 }; 
