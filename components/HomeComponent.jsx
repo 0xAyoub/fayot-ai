@@ -6,6 +6,8 @@ import { CiHome, CiMenuBurger } from "react-icons/ci";
 import { BsCardHeading, BsQuestionCircleFill } from 'react-icons/bs';
 import Link from 'next/link';
 import { supabase } from '../src/utils/supabaseClient';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 
 // Fonction utilitaire pour obtenir l'icône de fichier
 const getFileIcon = (type) => {
@@ -18,6 +20,23 @@ const getFileIcon = (type) => {
       return <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">FILE</div>;
   }
 };
+
+// Fonction pour déterminer le type MIME en fonction de l'extension
+function getMimeType(extension) {
+  const ext = extension.toLowerCase();
+  const mimeTypes = {
+    '.pdf': 'application/pdf',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.txt': 'text/plain'
+  };
+  
+  return mimeTypes[ext] || 'application/octet-stream';
+}
 
 export const HomeComponent = ({ user }) => {
   const router = useRouter();
@@ -59,6 +78,42 @@ export const HomeComponent = ({ user }) => {
   const handleFormatSelect = (format) => {
     if (format === 'memo' || format === 'qcm') {
       setSelectedFormat(format);
+    }
+  };
+
+  // Fonction pour uploader un fichier à Supabase Storage
+  const uploadToSupabaseStorage = async (fileBuffer, fileName, userId) => {
+    const fileExt = path.extname(fileName);
+    const uniqueFileName = `${Date.now()}-${uuidv4()}${fileExt}`;
+    const filePath = `${userId}/${uniqueFileName}`;
+
+    try {
+      // Obtenir le token d'authentification de l'utilisateur
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        throw new Error('Impossible de récupérer le token d\'authentification');
+      }
+
+      // Créer un client Supabase avec le token d'authentification de l'utilisateur
+      const { data, error } = await supabase
+        .storage
+        .from('documents')
+        .upload(filePath, fileBuffer, {
+          contentType: getMimeType(fileExt),
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      return {
+        path: filePath,
+        name: fileName
+      };
+    } catch (error) {
+      console.error('Erreur lors de l\'upload à Supabase:', error);
+      throw error;
     }
   };
 
@@ -163,28 +218,81 @@ export const HomeComponent = ({ user }) => {
     }
   };
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
+    
+    // Vérifier le type de fichier (PDF ou image)
+    if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
+      alert('Seuls les fichiers PDF et images sont acceptés');
+      return;
+    }
 
-    // Extraire l'extension et calculer la taille
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-    const fileType = fileExtension === 'pdf' ? 'pdf' : 'doc';
-    const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(1);
+    // Limiter la taille du fichier (par exemple, 10 Mo)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Le fichier est trop volumineux (max 10 Mo)');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(10);
     
-    // Formater la date actuelle
-    const date = new Date();
-    const formattedDate = `${date.getDate()} ${date.toLocaleString('fr-FR', { month: 'long' })} ${date.getFullYear()}`;
-    
-    setImportedFile({
-      file: file,
-      name: file.name,
-      type: fileType,
-      size: `${fileSizeInMB} MB`,
-      date: formattedDate
-    });
-    
-    // Passer à l'étape de configuration
-    setStep('configure');
+    try {
+      // Simuler la progression
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 500);
+      
+      // Convertir le fichier en ArrayBuffer pour l'upload
+      const fileBuffer = await file.arrayBuffer();
+      
+      // Uploader le fichier à Supabase Storage
+      const uploadedFile = await uploadToSupabaseStorage(fileBuffer, file.name, user.id);
+      
+      setUploadProgress(60);
+      
+      // Déterminer le type de fichier pour la base de données
+      const fileType = file.type.startsWith('image/') ? file.type.split('/')[1] : 'pdf';
+      
+      // Créer une entrée dans la table documents
+      const { data: newDocument, error: documentError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            user_id: user.id,
+            title: file.name,
+            file_path: uploadedFile.path,
+            file_size: file.size,
+            file_type: fileType
+          }
+        ])
+        .select()
+        .single();
+      
+      clearInterval(progressInterval);
+      
+      if (documentError) {
+        throw documentError;
+      }
+      
+      setUploadProgress(100);
+      
+      // Rediriger vers la page de sélection de format avec l'ID du document
+      setTimeout(() => {
+        router.push(`/format-selection?courseId=${newDocument.id}`);
+      }, 500);
+      
+    } catch (error) {
+      console.error("Erreur lors de l'upload du fichier:", error);
+      alert("Une erreur est survenue lors de l'upload du fichier. Veuillez réessayer.");
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   // Retour à l'étape d'upload
