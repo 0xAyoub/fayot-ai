@@ -120,7 +120,7 @@ export const NavBarComponent = () => {
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <FaStickyNote className="w-5 h-5 text-[#25a1e1]" />
-                                        <span className='ml-3 text-[16px] font-medium'>Mes cartes mémos</span>
+                                        <span className='ml-3 text-[16px] font-medium'>Mes mémo cartes</span>
                                     </Link>
 
                                     <Link 

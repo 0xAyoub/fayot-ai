@@ -33,9 +33,9 @@ async function uploadToSupabaseStorage(fileBuffer, fileName, userId, authToken) 
       global: {
         headers: {
           Authorization: `Bearer ${authToken}`
-        }
+    }
       }
-    });
+});
 
     // Utiliser le client authentifié pour l'upload
     const { data, error } = await supabaseUser
@@ -117,7 +117,7 @@ function debugObjectStructure(obj, maxDepth = 3) {
     if (depth > maxDepth) return "[max depth reached]";
     if (obj === null) return "null";
     if (obj === undefined) return "undefined";
-    
+  
     const type = typeof obj;
     
     // Types primitifs
@@ -149,8 +149,8 @@ function debugObjectStructure(obj, maxDepth = 3) {
       return `{${entries.join(', ')}${keys.length > 10 ? ', ...' : ''}}`;
     } catch (e) {
       return `[Error: ${e.message}]`;
-    }
-  }
+            }
+          }
   
   try {
     return explore(obj);
@@ -274,8 +274,8 @@ Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniqueme
     const response = await mistral.chat.complete({
       model: "mistral-large-2411",
       messages: [
-        {
-          role: "user",
+      {
+        role: "user",
           content: [
             {
               type: "text",
@@ -290,15 +290,15 @@ Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniqueme
       ],
       temperature: 0.3,
       response_format: { type: "json" },
-      max_tokens: 3000
-    });
+    max_tokens: 3000
+  });
 
     // Extraire la réponse
     const responseContent = response.choices[0].message.content;
     console.log("Réponse reçue de Mistral Document QnA, longueur:", responseContent.length);
     
     // Nettoyer et valider le JSON
-    try {
+  try {
       // Tentative de parser le JSON directement
       const parsedQuestions = JSON.parse(responseContent);
       
@@ -444,7 +444,7 @@ export default async function handler(req, res) {
     if (userError || !userData || !userData.user) {
       return res.status(401).json({ error: 'Non autorisé: Utilisateur non authentifié' });
     }
-
+    
     let document;
     let questions = [];
     let userId;
@@ -503,50 +503,50 @@ export default async function handler(req, res) {
       questions = await generateQCMFromDocument(fileBuffer, fileName, numberOfQuestions, difficultParts);
     } else {
       // Traitement d'un nouveau fichier
-      // Middleware multer pour gérer le téléchargement de fichier
-      await new Promise((resolve, reject) => {
-        upload.single('file')(req, res, (err) => {
-          if (err) reject(err);
-          resolve();
-        });
+    // Middleware multer pour gérer le téléchargement de fichier
+    await new Promise((resolve, reject) => {
+      upload.single('file')(req, res, (err) => {
+        if (err) reject(err);
+        resolve();
       });
+    });
 
-      const { file } = req;
+    const { file } = req;
       userId = req.body.userId;
       numberOfQuestions = parseInt(req.body.numberOfCards) || 10;
       difficultParts = req.body.difficultParts || '';
 
-      if (!file || !userId) {
+    if (!file || !userId) {
         return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
-      }
-      
-      // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
-      if (userId !== userData.user.id) {
-        return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
-      }
+    }
+    
+    // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
+    if (userId !== userData.user.id) {
+      return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
+    }
 
       // Uploader le fichier à Supabase Storage
       const uploadedFile = await uploadToSupabaseStorage(file.buffer, file.originalname, userId, token);
-      
-      // Stocker le document dans Supabase
+    
+    // Stocker le document dans Supabase
       const { data: newDocument, error: documentError } = await supabase
-        .from('documents')
-        .insert([
-          {
-            user_id: userId,
-            title: file.originalname,
+      .from('documents')
+      .insert([
+        {
+          user_id: userId,
+          title: file.originalname,
             file_path: uploadedFile.path,
-            file_size: file.size,
-            file_type: file.mimetype.split('/')[1]
-          }
-        ])
-        .select()
-        .single();
+          file_size: file.size,
+          file_type: file.mimetype.split('/')[1]
+        }
+      ])
+      .select()
+      .single();
 
-      if (documentError) {
-        throw documentError;
-      }
-
+    if (documentError) {
+      throw documentError;
+    }
+    
       document = newDocument;
       
       // Utiliser directement le buffer du fichier pour la génération

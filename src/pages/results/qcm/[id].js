@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { FaArrowLeft, FaCheck, FaRedo, FaDownload, FaShareAlt, FaMagic, FaTrophy, FaRocket, FaSync, FaBrain, FaBookmark, FaChevronLeft, FaChevronRight, FaExclamationTriangle } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaRedo, FaDownload, FaShareAlt, FaMagic, FaTrophy, FaRocket, FaSync, FaBrain, FaBookmark, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaHome, FaBook, FaStickyNote, FaQuestionCircle, FaUserAlt, FaCog, FaSignOutAlt } from 'react-icons/fa';
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { NavBarComponent } from '../../../../components/NavBarComponent';
@@ -152,6 +152,11 @@ function QcmResults({ user }) {
   
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/sign-in');
   };
 
   const handleOptionSelect = (optionIndex) => {
@@ -879,20 +884,79 @@ function QcmResults({ user }) {
               onClick={() => setIsMenuOpen(false)}
             />
             <div className="fixed top-0 right-0 h-full w-72 bg-[#ebebd7] shadow-xl z-40 rounded-l-2xl border-l-2 border-[#68ccff]/30 transform transition-all duration-300 ease-in-out translate-x-0">
-              <div className="p-5 pt-16">
+              <div className="p-5 pt-16 flex flex-col h-full">
                 <div className='mb-6 flex items-center justify-center'>
-                  <h1 className='text-xl text-[#25a1e1] font-bold'>Fayot</h1>
+                  <img src="/fayotlogo.png" alt="Logo Fayot" className="h-12" />
                 </div>
                 
-                <div className='flex flex-col space-y-3 mt-4'>
+                <div className='flex flex-col space-y-2'>
+                  <h2 className="text-xs uppercase text-gray-500 font-semibold ml-2 mb-1">Menu principal</h2>
                   <Link 
                     href="/" 
-                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all duration-300 active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <CiHome className="w-5 h-5 text-[#25a1e1]" />
+                    <FaHome className="w-5 h-5 text-[#25a1e1]" />
                     <span className='ml-3 text-[16px] font-medium'>Accueil</span>
                   </Link>
+                  
+                  <Link 
+                    href="/my-courses" 
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaBook className="w-5 h-5 text-[#25a1e1]" />
+                    <span className='ml-3 text-[16px] font-medium'>Mes cours</span>
+                  </Link>
+                  
+                  <Link 
+                    href="/my-cards" 
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaStickyNote className="w-5 h-5 text-[#25a1e1]" />
+                    <span className='ml-3 text-[16px] font-medium'>Mes mémo cartes</span>
+                  </Link>
+
+                  <Link 
+                    href="/my-qcm" 
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaQuestionCircle className="w-5 h-5 text-[#25a1e1]" />
+                    <span className='ml-3 text-[16px] font-medium'>Mes QCMs</span>
+                  </Link>
+                </div>
+                
+                {/* Spacer to push to bottom */}
+                <div className="flex-grow"></div>
+                
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-4"></div>
+                
+                {/* Secondary links */}
+                <div className='flex flex-col space-y-2 mb-4'>
+                  <h2 className="text-xs uppercase text-gray-500 font-semibold ml-2 mb-1">Paramètres</h2>
+                  <Link 
+                    href="/compte" 
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaUserAlt className="w-5 h-5 text-gray-600" />
+                    <span className='ml-3 text-[16px] font-medium text-gray-700'>Compte</span>
+                  </Link>
+                  
+                  <Link 
+                    href="/parametres" 
+                    className='flex items-center w-full rounded-xl px-4 py-3 transition-all active:bg-[#68ccff]/20 hover:bg-[#68ccff]/10 hover:scale-105'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <FaCog className="w-5 h-5 text-gray-600" />
+                    <span className='ml-3 text-[16px] font-medium text-gray-700'>Paramètres</span>
+                  </Link>
+                  <button onClick={handleLogout} className='flex items-center w-full rounded-xl px-4 py-3 transition-all bg-red-50 hover:bg-red-100 hover:scale-105 text-red-600 font-semibold'>
+                    <FaSignOutAlt className="w-5 h-5 mr-3" /> Se déconnecter
+                  </button>
                 </div>
               </div>
             </div>
