@@ -4,12 +4,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { put } from '@vercel/blob';
-
-// Détection de l'environnement
-const isProduction = process.env.NODE_ENV === 'production';
-const isVercel = process.env.VERCEL === '1';
-const isVercelEnv = process.env.VERCEL || process.env.VERCEL_ENV;
+import { Readable } from 'stream';
 
 // Configuration Mistral AI
 const mistral = new Mistral({
@@ -21,79 +16,97 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_KEY || supabaseKey);
 
-// Création du dossier uploads s'il n'existe pas (uniquement en développement local)
-if (!isVercelEnv) {
-  const uploadDir = './public/uploads/';
-  if (!fs.existsSync(uploadDir)) {
-    try {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    } catch (error) {
-      console.warn("Impossible de créer le dossier uploads, stockage local désactivé:", error.message);
-    }
-  }
-}
-
-// Configuration multer pour le stockage des fichiers (uniquement en développement)
+// Configuration multer pour le stockage temporaire en mémoire (pas sur disque)
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, './public/uploads/');
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-  })
+  storage: multer.memoryStorage()
 });
 
-// Fonction pour gérer le stockage de fichiers (production vs développement)
-async function storeFile(file) {
-  if (isVercelEnv) {
-    // Utiliser Vercel Blob Storage en production
-    console.log("Utilisation de Vercel Blob Storage pour stocker le fichier");
-    const blobName = `uploads/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const blob = await put(blobName, file.buffer, {
-      access: 'public',
-      contentType: file.mimetype,
-    });
-    return {
-      path: blob.url,
-      isBlob: true,
-      blobUrl: blob.url
-    };
-  } else {
-    // Utiliser le stockage local en développement
-    console.log("Utilisation du stockage local pour stocker le fichier");
-    return {
-      path: file.path,
-      isBlob: false
-    };
-  }
-}
+// Fonction pour uploader un fichier à Supabase Storage
+async function uploadToSupabaseStorage(fileBuffer, fileName, userId, authToken) {
+  const fileExt = path.extname(fileName);
+  const uniqueFileName = `${Date.now()}-${uuidv4()}${fileExt}`;
+  const filePath = `${userId}/${uniqueFileName}`;
 
-// Fonction pour lire un fichier (production vs développement)
-async function readFile(filePath, isBlob) {
-  if (isBlob) {
-    // En production, télécharger le fichier depuis l'URL du blob
-    console.log("Lecture du fichier depuis Vercel Blob Storage:", filePath);
-    const response = await fetch(filePath);
-    const buffer = await response.arrayBuffer();
-    return Buffer.from(buffer);
-  } else {
-    // En développement, lire le fichier local
-    console.log("Lecture du fichier local:", filePath);
-    return fs.readFileSync(filePath);
-  }
-}
-
-// Fonction pour encoder un fichier en base64
-function encodeFileToBase64(filePath) {
   try {
-    const fileBuffer = fs.readFileSync(filePath);
-    return fileBuffer.toString('base64');
+    // Créer un client Supabase avec le token d'authentification de l'utilisateur
+    const supabaseUser = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      }
+    });
+
+    // Utiliser le client authentifié pour l'upload
+    const { data, error } = await supabaseUser
+      .storage
+      .from('documents')
+      .upload(filePath, fileBuffer, {
+        contentType: getMimeType(fileExt),
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    // Obtenir l'URL publique du fichier
+    const { data: urlData, error: urlError } = await supabaseUser
+      .storage
+      .from('documents')
+      .createSignedUrl(filePath, 60 * 60 * 24 * 7); // URL valide 7 jours
+
+    if (urlError) throw urlError;
+
+    return {
+      path: filePath,
+      url: urlData.signedUrl,
+      name: fileName
+    };
   } catch (error) {
-    console.error(`Erreur lors de l'encodage du fichier en base64:`, error);
-    return null;
+    console.error('Erreur lors de l\'upload à Supabase:', error);
+    throw error;
+  }
+}
+
+// Fonction pour déterminer le type MIME en fonction de l'extension
+function getMimeType(extension) {
+  const ext = extension.toLowerCase();
+  const mimeTypes = {
+    '.pdf': 'application/pdf',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.txt': 'text/plain'
+  };
+  
+  return mimeTypes[ext] || 'application/octet-stream';
+}
+
+// Fonction pour obtenir le contenu d'un fichier depuis Supabase Storage
+async function getFileFromSupabaseStorage(filePath, authToken) {
+  try {
+    // Créer un client Supabase avec le token d'authentification de l'utilisateur
+    const supabaseUser = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      }
+    });
+    
+    const { data, error } = await supabaseUser
+      .storage
+      .from('documents')
+      .download(filePath);
+
+    if (error) throw error;
+    
+    return data; // Retourne le buffer du fichier
+  } catch (error) {
+    console.error('Erreur lors de la récupération du fichier depuis Supabase:', error);
+    throw error;
   }
 }
 
@@ -205,34 +218,11 @@ function extractJSONFromMarkdown(text) {
 }
 
 // Fonction pour générer des QCM avec Mistral Document QnA
-async function generateQCMFromDocument(filePath, numberOfQuestions, difficultParts = '', isBlob = false) {
+async function generateQCMFromDocument(fileBuffer, fileName, numberOfQuestions, difficultParts = '') {
   try {
-    console.log(`Génération de QCM à partir du document: ${filePath}`);
+    console.log(`Génération de QCM à partir du document: ${fileName}`);
     
-    // Vérifier que le fichier existe ou est accessible
-    let fileBuffer;
-    let fileName;
-    
-    if (isBlob) {
-      // Pour les fichiers stockés dans Vercel Blob
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        console.error(`Impossible d'accéder au fichier: ${filePath}`);
-        return createFallbackQuestions(numberOfQuestions);
-      }
-      fileBuffer = Buffer.from(await response.arrayBuffer());
-      fileName = filePath.split('/').pop();
-    } else {
-      // Pour les fichiers locaux
-      if (!fs.existsSync(filePath)) {
-        console.error(`Le fichier n'existe pas: ${filePath}`);
-        return createFallbackQuestions(numberOfQuestions);
-      }
-      fileBuffer = fs.readFileSync(filePath);
-      fileName = path.basename(filePath);
-    }
-
-    // Télécharger le fichier sur Mistral Files API
+    // Télécharger le fichier sur Mistral Files API directement depuis le buffer
     console.log("Téléchargement du fichier sur Mistral Files API...");
     
     // Télécharger le fichier via l'API de fichiers Mistral
@@ -423,71 +413,6 @@ function createFallbackQuestions(numberOfQuestions) {
   return fallbackQuestions;
 }
 
-// Middleware pour gérer les fichiers en production
-const handleFileUpload = async (req, res) => {
-  if (isVercelEnv) {
-    // En production sur Vercel, utiliser la méthode de buffer pour le fichier
-    const chunks = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    }
-    const buffer = Buffer.concat(chunks);
-    
-    // Analyser le multipart form-data manuellement
-    const boundary = req.headers['content-type'].split('boundary=')[1];
-    
-    // Recherche de l'entrée "file" dans le multipart form-data
-    const parts = buffer.toString().split(`--${boundary}`);
-    let file = null;
-    let fileMetadata = {};
-    
-    // Extraire les informations du formulaire
-    const formData = {};
-    
-    for (const part of parts) {
-      const match = part.match(/Content-Disposition: form-data; name="([^"]+)"(?:; filename="([^"]+)")?([\s\S]*)/);
-      if (match) {
-        const name = match[1];
-        const filename = match[2];
-        let content = match[3].trim();
-        
-        // Supprimer les entêtes supplémentaires si présents
-        const contentStartIndex = content.indexOf('\r\n\r\n');
-        if (contentStartIndex !== -1) {
-          content = content.substring(contentStartIndex + 4);
-        }
-        
-        if (name === 'file' && filename) {
-          // Traitement du fichier
-          fileMetadata = {
-            originalname: filename,
-            mimetype: part.match(/Content-Type: ([^\r\n]+)/)?.[1] || 'application/octet-stream',
-            buffer: Buffer.from(content, 'binary')
-          };
-          file = fileMetadata;
-        } else {
-          // Autres champs du formulaire
-          formData[name] = content;
-        }
-      }
-    }
-    
-    // Attacher les données extraites à l'objet req
-    req.file = file;
-    req.body = formData;
-    
-    return { file, formData };
-  } else {
-    // En développement, utiliser multer comme avant
-    return new Promise((resolve, reject) => {
-      upload.single('file')(req, res, (err) => {
-        if (err) reject(err);
-        resolve({ file: req.file, formData: req.body });
-      });
-    });
-  }
-};
-
 // Route API principale
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -525,7 +450,8 @@ export default async function handler(req, res) {
     let userId;
     let numberOfQuestions;
     let difficultParts = '';
-    let isStoredInBlob = false;
+    let fileBuffer;
+    let fileName;
 
     // Déterminer si nous avons un document existant ou un nouveau fichier
     if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
@@ -568,25 +494,30 @@ export default async function handler(req, res) {
       }
 
       document = existingDocument;
-      isStoredInBlob = document.is_blob || document.file_path.includes('blob.vercel-storage.com');
+      
+      // Récupérer le fichier depuis Supabase Storage
+      fileBuffer = await getFileFromSupabaseStorage(document.file_path, token);
+      fileName = path.basename(document.file_path);
 
       // Générer les QCM directement à partir du document avec Document QnA
-      questions = await generateQCMFromDocument(document.file_path, numberOfQuestions, difficultParts, isStoredInBlob);
+      questions = await generateQCMFromDocument(fileBuffer, fileName, numberOfQuestions, difficultParts);
     } else {
       // Traitement d'un nouveau fichier
-      // Utiliser le middleware approprié selon l'environnement
-      const { file, formData } = await handleFileUpload(req, res);
+      // Middleware multer pour gérer le téléchargement de fichier
+      await new Promise((resolve, reject) => {
+        upload.single('file')(req, res, (err) => {
+          if (err) reject(err);
+          resolve();
+        });
+      });
 
-      if (!file) {
-        return res.status(400).json({ error: 'Fichier manquant' });
-      }
+      const { file } = req;
+      userId = req.body.userId;
+      numberOfQuestions = parseInt(req.body.numberOfCards) || 10;
+      difficultParts = req.body.difficultParts || '';
 
-      userId = formData.userId || req.body.userId;
-      numberOfQuestions = parseInt(formData.numberOfCards || req.body.numberOfCards) || 10;
-      difficultParts = formData.difficultParts || req.body.difficultParts || '';
-
-      if (!userId) {
-        return res.status(400).json({ error: 'ID utilisateur manquant' });
+      if (!file || !userId) {
+        return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
       }
       
       // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
@@ -594,10 +525,9 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
       }
 
-      // Stocker le fichier selon l'environnement
-      const fileStorage = await storeFile(file);
-      isStoredInBlob = fileStorage.isBlob;
-
+      // Uploader le fichier à Supabase Storage
+      const uploadedFile = await uploadToSupabaseStorage(file.buffer, file.originalname, userId, token);
+      
       // Stocker le document dans Supabase
       const { data: newDocument, error: documentError } = await supabase
         .from('documents')
@@ -605,10 +535,9 @@ export default async function handler(req, res) {
           {
             user_id: userId,
             title: file.originalname,
-            file_path: fileStorage.path,
-            file_size: file.size || (file.buffer ? file.buffer.length : 0),
-            file_type: file.mimetype.split('/')[1],
-            is_blob: isStoredInBlob
+            file_path: uploadedFile.path,
+            file_size: file.size,
+            file_type: file.mimetype.split('/')[1]
           }
         ])
         .select()
@@ -620,8 +549,12 @@ export default async function handler(req, res) {
 
       document = newDocument;
       
+      // Utiliser directement le buffer du fichier pour la génération
+      fileBuffer = file.buffer;
+      fileName = file.originalname;
+      
       // Générer les QCM directement à partir du document avec Document QnA
-      questions = await generateQCMFromDocument(fileStorage.path, numberOfQuestions, difficultParts, isStoredInBlob);
+      questions = await generateQCMFromDocument(fileBuffer, fileName, numberOfQuestions, difficultParts);
     }
 
     // Créer un nouveau quiz
