@@ -4,6 +4,11 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { put } from '@vercel/blob';
+
+// Détection de l'environnement
+const isProduction = process.env.NODE_ENV === 'production';
+const isVercel = process.env.VERCEL === '1';
 
 // Configuration Mistral AI
 const mistral = new Mistral({
@@ -15,16 +20,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_KEY || supabaseKey);
 
-// Création du dossier uploads s'il n'existe pas
-const uploadDir = './public/uploads/';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Création du dossier uploads s'il n'existe pas (uniquement en développement)
+if (!isProduction) {
+  const uploadDir = './public/uploads/';
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 }
 
-// Configuration multer pour le stockage des fichiers
+// Configuration multer pour le stockage des fichiers (uniquement en développement)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, './public/uploads/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -45,6 +52,46 @@ const upload = multer({
     }
   }
 });
+
+// Fonction pour gérer le stockage de fichiers (production vs développement)
+async function storeFile(file) {
+  if (isProduction && isVercel) {
+    // Utiliser Vercel Blob Storage en production
+    console.log("Utilisation de Vercel Blob Storage pour stocker le fichier");
+    const blobName = `uploads/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const blob = await put(blobName, file.buffer, {
+      access: 'public',
+      contentType: file.mimetype,
+    });
+    return {
+      path: blob.url,
+      isBlob: true,
+      blobUrl: blob.url
+    };
+  } else {
+    // Utiliser le stockage local en développement
+    console.log("Utilisation du stockage local pour stocker le fichier");
+    return {
+      path: file.path,
+      isBlob: false
+    };
+  }
+}
+
+// Fonction pour lire un fichier (production vs développement)
+async function readFile(filePath, isBlob) {
+  if (isBlob) {
+    // En production, télécharger le fichier depuis l'URL du blob
+    console.log("Lecture du fichier depuis Vercel Blob Storage:", filePath);
+    const response = await fetch(filePath);
+    const buffer = await response.arrayBuffer();
+    return Buffer.from(buffer);
+  } else {
+    // En développement, lire le fichier local
+    console.log("Lecture du fichier local:", filePath);
+    return fs.readFileSync(filePath);
+  }
+}
 
 // Fonction pour encoder un fichier en base64
 function encodeFileToBase64(filePath) {
@@ -165,20 +212,35 @@ function extractJSONFromMarkdown(text) {
 }
 
 // Fonction pour générer des mémocartes avec Mistral Document QnA
-async function generateMemocardsFromDocument(filePath, numberOfCards, difficultParts = '') {
+async function generateMemocardsFromDocument(filePath, numberOfCards, difficultParts = '', isBlob = false) {
   try {
     console.log(`Génération de mémocartes à partir du document: ${filePath}`);
     
-    // Vérifier que le fichier existe
-    if (!fs.existsSync(filePath)) {
-      console.error(`Le fichier n'existe pas: ${filePath}`);
-      return createFallbackCards(numberOfCards);
+    // Vérifier que le fichier existe ou est accessible
+    let fileBuffer;
+    let fileName;
+    
+    if (isBlob) {
+      // Pour les fichiers stockés dans Vercel Blob
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        console.error(`Impossible d'accéder au fichier: ${filePath}`);
+        return createFallbackCards(numberOfCards);
+      }
+      fileBuffer = Buffer.from(await response.arrayBuffer());
+      fileName = filePath.split('/').pop();
+    } else {
+      // Pour les fichiers locaux
+      if (!fs.existsSync(filePath)) {
+        console.error(`Le fichier n'existe pas: ${filePath}`);
+        return createFallbackCards(numberOfCards);
+      }
+      fileBuffer = fs.readFileSync(filePath);
+      fileName = path.basename(filePath);
     }
 
-    // Au lieu d'encoder en base64, télécharger le fichier et obtenir une URL signée
+    // Télécharger le fichier sur Mistral Files API
     console.log("Téléchargement du fichier sur Mistral Files API...");
-    const fileBuffer = fs.readFileSync(filePath);
-    const fileName = path.basename(filePath);
     
     // Télécharger le fichier via l'API de fichiers Mistral
     const uploadedFile = await mistral.files.upload({
@@ -332,6 +394,71 @@ function createFallbackCards(numberOfCards) {
   return fallbackCards;
 }
 
+// Middleware pour gérer les fichiers en production
+const handleFileUpload = async (req, res) => {
+  if (isProduction && isVercel) {
+    // En production sur Vercel, utiliser la méthode de buffer pour le fichier
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+    
+    // Analyser le multipart form-data manuellement
+    const boundary = req.headers['content-type'].split('boundary=')[1];
+    
+    // Recherche de l'entrée "file" dans le multipart form-data
+    const parts = buffer.toString().split(`--${boundary}`);
+    let file = null;
+    let fileMetadata = {};
+    
+    // Extraire les informations du formulaire
+    const formData = {};
+    
+    for (const part of parts) {
+      const match = part.match(/Content-Disposition: form-data; name="([^"]+)"(?:; filename="([^"]+)")?([\s\S]*)/);
+      if (match) {
+        const name = match[1];
+        const filename = match[2];
+        let content = match[3].trim();
+        
+        // Supprimer les entêtes supplémentaires si présents
+        const contentStartIndex = content.indexOf('\r\n\r\n');
+        if (contentStartIndex !== -1) {
+          content = content.substring(contentStartIndex + 4);
+        }
+        
+        if (name === 'file' && filename) {
+          // Traitement du fichier
+          fileMetadata = {
+            originalname: filename,
+            mimetype: part.match(/Content-Type: ([^\r\n]+)/)?.[1] || 'application/octet-stream',
+            buffer: Buffer.from(content, 'binary')
+          };
+          file = fileMetadata;
+        } else {
+          // Autres champs du formulaire
+          formData[name] = content;
+        }
+      }
+    }
+    
+    // Attacher les données extraites à l'objet req
+    req.file = file;
+    req.body = formData;
+    
+    return { file, formData };
+  } else {
+    // En développement, utiliser multer comme avant
+    return new Promise((resolve, reject) => {
+      upload.single('file')(req, res, (err) => {
+        if (err) reject(err);
+        resolve({ file: req.file, formData: req.body });
+      });
+    });
+  }
+};
+
 // Route API principale
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -369,6 +496,7 @@ export default async function handler(req, res) {
     let userId;
     let numberOfCards;
     let difficultParts = '';
+    let isStoredInBlob = false;
 
     // Déterminer si nous avons un document existant ou un nouveau fichier
     if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
@@ -411,33 +539,35 @@ export default async function handler(req, res) {
       }
 
       document = existingDocument;
+      isStoredInBlob = document.is_blob || document.file_path.includes('blob.vercel-storage.com');
 
       // Générer les mémocartes directement à partir du document avec Document QnA
-      flashcards = await generateMemocardsFromDocument(document.file_path, numberOfCards, difficultParts);
+      flashcards = await generateMemocardsFromDocument(document.file_path, numberOfCards, difficultParts, isStoredInBlob);
     } else {
       // Traitement d'un nouveau fichier
-      // Middleware multer pour gérer le téléchargement de fichier
-      await new Promise((resolve, reject) => {
-        upload.single('file')(req, res, (err) => {
-          if (err) reject(err);
-          resolve();
-        });
-      });
+      // Utiliser le middleware approprié selon l'environnement
+      const { file, formData } = await handleFileUpload(req, res);
 
-      // Récupérer le fichier et les données du formulaire
-      const { file } = req;
-      userId = req.body.userId;
-      numberOfCards = parseInt(req.body.numberOfCards) || 10;
-      difficultParts = req.body.difficultParts || '';
+      if (!file) {
+        return res.status(400).json({ error: 'Fichier manquant' });
+      }
 
-      if (!file || !userId) {
-        return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
+      userId = formData.userId || req.body.userId;
+      numberOfCards = parseInt(formData.numberOfCards || req.body.numberOfCards) || 10;
+      difficultParts = formData.difficultParts || req.body.difficultParts || '';
+
+      if (!userId) {
+        return res.status(400).json({ error: 'ID utilisateur manquant' });
       }
       
       // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
       if (userId !== userData.user.id) {
         return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
       }
+
+      // Stocker le fichier selon l'environnement
+      const fileStorage = await storeFile(file);
+      isStoredInBlob = fileStorage.isBlob;
 
       // Stocker le document dans Supabase
       const { data: newDocument, error: documentError } = await supabase
@@ -446,9 +576,10 @@ export default async function handler(req, res) {
           {
             user_id: userId,
             title: file.originalname,
-            file_path: file.path,
-            file_size: file.size,
-            file_type: file.mimetype.split('/')[1]
+            file_path: fileStorage.path,
+            file_size: file.size || (file.buffer ? file.buffer.length : 0),
+            file_type: file.mimetype.split('/')[1],
+            is_blob: isStoredInBlob
           }
         ])
         .select()
@@ -461,7 +592,7 @@ export default async function handler(req, res) {
       document = newDocument;
       
       // Générer les mémocartes directement à partir du document avec Document QnA
-      flashcards = await generateMemocardsFromDocument(file.path, numberOfCards, difficultParts);
+      flashcards = await generateMemocardsFromDocument(fileStorage.path, numberOfCards, difficultParts, isStoredInBlob);
     }
 
     // Créer une nouvelle liste de flashcards
