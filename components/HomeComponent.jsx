@@ -226,7 +226,7 @@ export const HomeComponent = ({ user }) => {
 
   const handleFile = async (file) => {
     if (!file) return;
-    
+
     // Vérifier le type de fichier (PDF ou image)
     if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
       alert('Seuls les fichiers PDF et images sont acceptés');
@@ -287,7 +287,7 @@ export const HomeComponent = ({ user }) => {
       }
       
       setUploadProgress(100);
-      
+    
       // Rediriger vers la page de sélection de format avec l'ID du document
       setTimeout(() => {
         router.push(`/format-selection?courseId=${newDocument.id}`);

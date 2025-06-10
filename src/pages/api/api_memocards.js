@@ -70,10 +70,10 @@ async function uploadToSupabaseStorage(fileBuffer, fileName, userId, authToken) 
       url: urlData.signedUrl,
       name: fileName
     };
-  } catch (error) {
+      } catch (error) {
     console.error('Erreur lors de l\'upload à Supabase:', error);
     throw error;
-  }
+      }
 }
 
 // Fonction pour déterminer le type MIME en fonction de l'extension
@@ -104,7 +104,7 @@ async function getFileFromSupabaseStorage(filePath, authToken) {
         }
       }
     });
-    
+  
     const { data, error } = await supabaseUser
       .storage
       .from('documents')
@@ -115,6 +115,15 @@ async function getFileFromSupabaseStorage(filePath, authToken) {
     return data; // Retourne le buffer du fichier
   } catch (error) {
     console.error('Erreur lors de la récupération du fichier depuis Supabase:', error);
+    
+    // Vérifier si nous sommes en environnement de développement local
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Environnement de développement détecté. Utilisation d\'un fichier de test par défaut.');
+      // Renvoyer un buffer de fichier vide ou un exemple
+      // Pour le développement local, on crée un buffer d'un fichier texte simple
+      return Buffer.from('Contenu de test pour le développement local. Ce document est utilisé quand le vrai fichier est inaccessible.');
+    }
+    
     throw error;
   }
 }
@@ -152,7 +161,7 @@ function debugObjectStructure(obj, maxDepth = 3) {
           return `"${key}": ${explore(obj[key], depth + 1)}`;
         } catch (e) {
           return `"${key}": [Error: ${e.message}]`;
-        }
+            }
       });
       
       return `{${entries.join(', ')}${keys.length > 10 ? ', ...' : ''}}`;
@@ -281,8 +290,8 @@ Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniqueme
     const response = await mistral.chat.complete({
       model: "mistral-large-2411",
       messages: [
-        {
-          role: "user",
+      {
+        role: "user",
           content: [
             {
               type: "text",
@@ -298,7 +307,7 @@ Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniqueme
       temperature: 0.3,
       response_format: { type: "json" },
       max_tokens: 3000
-    });
+  });
 
     // Extraire la réponse
     const responseContent = response.choices[0].message.content;
@@ -315,7 +324,7 @@ Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniqueme
       }
       
       console.log(`Parsing JSON réussi, ${parsedCards.length} mémocartes trouvées`);
-      
+        
       // Vérifier et corriger chaque carte si nécessaire
       const validatedCards = parsedCards.map((card, index) => {
         return {
@@ -417,7 +426,7 @@ export default async function handler(req, res) {
     if (userError || !userData || !userData.user) {
       return res.status(401).json({ error: 'Non autorisé: Utilisateur non authentifié' });
     }
-
+    
     let document;
     let flashcards = [];
     let userId;
@@ -469,58 +478,68 @@ export default async function handler(req, res) {
       document = existingDocument;
 
       // Récupérer le fichier depuis Supabase Storage
-      fileBuffer = await getFileFromSupabaseStorage(document.file_path, token);
+      try {
+        fileBuffer = await getFileFromSupabaseStorage(document.file_path, token);
+      } catch (error) {
+        console.error('Impossible de récupérer le fichier. Utilisation d\'un fichier de secours:', error);
+        // En cas d'erreur, créer un buffer par défaut pour pouvoir continuer
+        if (process.env.NODE_ENV === 'development') {
+          fileBuffer = Buffer.from('Contenu de test pour le développement local. Ce document est utilisé quand le vrai fichier est inaccessible.');
+        } else {
+          throw error; // En production, on propage l'erreur
+        }
+      }
       fileName = path.basename(document.file_path);
 
       // Générer les mémocartes directement à partir du document avec Document QnA
       flashcards = await generateMemocardsFromDocument(fileBuffer, fileName, numberOfCards, difficultParts);
     } else {
       // Traitement d'un nouveau fichier
-      // Middleware multer pour gérer le téléchargement de fichier
-      await new Promise((resolve, reject) => {
-        upload.single('file')(req, res, (err) => {
-          if (err) reject(err);
-          resolve();
-        });
+    // Middleware multer pour gérer le téléchargement de fichier
+    await new Promise((resolve, reject) => {
+      upload.single('file')(req, res, (err) => {
+        if (err) reject(err);
+        resolve();
       });
+    });
 
       // Récupérer le fichier et les données du formulaire
-      const { file } = req;
+    const { file } = req;
       userId = req.body.userId;
       numberOfCards = parseInt(req.body.numberOfCards) || 10;
       difficultParts = req.body.difficultParts || '';
 
       if (!file || !userId) {
         return res.status(400).json({ error: 'Fichier ou ID utilisateur manquant' });
-      }
-      
-      // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
-      if (userId !== userData.user.id) {
-        return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
-      }
+    }
+    
+    // Vérifier que l'ID utilisateur correspond à l'utilisateur authentifié
+    if (userId !== userData.user.id) {
+      return res.status(403).json({ error: 'Non autorisé: l\'ID utilisateur ne correspond pas à l\'utilisateur authentifié' });
+    }
 
       // Uploader le fichier à Supabase Storage
       const uploadedFile = await uploadToSupabaseStorage(file.buffer, file.originalname, userId, token);
-
-      // Stocker le document dans Supabase
+    
+    // Stocker le document dans Supabase
       const { data: newDocument, error: documentError } = await supabase
-        .from('documents')
-        .insert([
-          {
-            user_id: userId,
-            title: file.originalname,
+      .from('documents')
+      .insert([
+        {
+          user_id: userId,
+          title: file.originalname,
             file_path: uploadedFile.path,
-            file_size: file.size,
-            file_type: file.mimetype.split('/')[1]
-          }
-        ])
-        .select()
-        .single();
+          file_size: file.size,
+          file_type: file.mimetype.split('/')[1]
+        }
+      ])
+      .select()
+      .single();
 
-      if (documentError) {
-        throw documentError;
-      }
-
+    if (documentError) {
+      throw documentError;
+    }
+    
       document = newDocument;
       
       // Utiliser directement le buffer du fichier pour la génération

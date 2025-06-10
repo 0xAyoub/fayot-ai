@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavBarComponent, SubscriptionBlock } from '../../components/NavBarComponent';
 import { useRouter } from 'next/router';
-import { FaCloudUploadAlt, FaPlus, FaArrowRight, FaGraduationCap, FaBrain, FaBook, FaLightbulb, FaStar, FaRocket, FaQuestionCircle, FaCrown, FaBars, FaRegFileAlt, FaRegListAlt, FaEye, FaFilePdf, FaImage, FaHome, FaStickyNote, FaUserAlt, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaPlus, FaArrowRight, FaGraduationCap, FaBrain, FaBook, FaLightbulb, FaStar, FaRocket, FaQuestionCircle, FaCrown, FaBars, FaRegFileAlt, FaRegListAlt, FaEye, FaFilePdf, FaImage, FaHome, FaStickyNote, FaUserAlt, FaCog, FaSignOutAlt, FaTrashAlt } from 'react-icons/fa';
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { BsCardHeading } from 'react-icons/bs';
@@ -183,15 +183,28 @@ const MyCourseComponent = ({ user }) => {
                     </button>
                   </div>
                 </div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePreviewCourse(course.id);
-                  }} 
-                  className="flex-shrink-0 bg-[#68ccff]/10 text-[#25a1e1] p-0.5 rounded-md self-start ml-1"
-                >
-                  <FaEye className="w-2.5 h-2.5" />
-                </button>
+                <div className="flex flex-col">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreviewCourse(course.id);
+                    }} 
+                    className="flex-shrink-0 bg-[#68ccff]/10 text-[#25a1e1] p-0.5 rounded-md self-end ml-1"
+                  >
+                    <FaEye className="w-2.5 h-2.5" />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+                        handleDeleteCourse(course.id);
+                      }
+                    }} 
+                    className="flex-shrink-0 bg-red-100 text-red-600 p-0.5 rounded-md self-end ml-1 mt-1"
+                  >
+                    <FaTrashAlt className="w-2.5 h-2.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -280,15 +293,28 @@ const MyCourseComponent = ({ user }) => {
                     </div>
                   </div>
                   <div className="flex flex-col items-end justify-between ml-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePreviewCourse(course.id);
-                      }} 
-                      className="flex-shrink-0 bg-[#68ccff]/20 text-[#25a1e1] p-1 rounded-md hover:bg-[#68ccff]/30 transition-all hover:scale-105"
-                    >
-                      <FaEye className="w-3 h-3" />
-                    </button>
+                    <div className="flex">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePreviewCourse(course.id);
+                        }} 
+                        className="flex-shrink-0 bg-[#68ccff]/20 text-[#25a1e1] p-1 rounded-md hover:bg-[#68ccff]/30 transition-all hover:scale-105 mr-1"
+                      >
+                        <FaEye className="w-3 h-3" />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+                            handleDeleteCourse(course.id);
+                          }
+                        }} 
+                        className="flex-shrink-0 bg-red-100 text-red-600 p-1 rounded-md hover:bg-red-200 transition-all hover:scale-105"
+                      >
+                        <FaTrashAlt className="w-3 h-3" />
+                      </button>
+                    </div>
                     <div className="text-[10px] text-gray-400">
                       {course.lastUpdated}
                     </div>
@@ -443,6 +469,66 @@ const MyCourseComponent = ({ user }) => {
       </div>
     </div>
   );
+  
+  // Ajout de la fonction de suppression
+  const handleDeleteCourse = async (courseId) => {
+    try {
+      // Obtenir d'abord les détails du document
+      const { data: document, error: documentError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', courseId)
+        .single();
+      
+      if (documentError) throw documentError;
+      
+      // Supprimer le fichier du bucket storage
+      if (document.file_path) {
+        const { error: storageError } = await supabase
+          .storage
+          .from('documents')
+          .remove([document.file_path]);
+        
+        // En environnement de développement, ne pas bloquer si le fichier n'existe pas
+        if (storageError && process.env.NODE_ENV !== 'development') {
+          throw storageError;
+        }
+      }
+      
+      // Supprimer les QCMs associés au document
+      const { error: quizDeleteError } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('document_id', courseId);
+      
+      // Supprimer les mémo cartes associées au document
+      const { error: flashcardListDeleteError } = await supabase
+        .from('flashcard_lists')
+        .delete()
+        .eq('document_id', courseId);
+      
+      // Supprimer le document de la base de données
+      const { error: deleteError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', courseId);
+      
+      if (deleteError) throw deleteError;
+      
+      // Mettre à jour l'état pour retirer le document de la liste
+      setCourses(courses.filter(course => course.id !== courseId));
+      
+      // Si le document supprimé était sélectionné, désélectionner
+      if (selectedCourse === courseId) {
+        setSelectedCourse(null);
+        setPreviewOpen(false);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la suppression du document:', error);
+      alert('Erreur lors de la suppression du document. Veuillez réessayer.');
+    }
+  };
   
   return (
     <div className='flex md:flex-row min-h-screen'>

@@ -23,7 +23,7 @@ function MemocardResults({ user }) {
   const [showDownload, setShowDownload] = useState(false);
   const [error, setError] = useState('');
   const cardRef = useRef(null);
-
+  
   // Récupérer les mémo cartes depuis Supabase
   useEffect(() => {
     const fetchFlashcards = async () => {
@@ -61,8 +61,8 @@ function MemocardResults({ user }) {
       } catch (error) {
         console.error('Erreur lors de la récupération des mémo cartes:', error);
         setError('Impossible de charger les mémo cartes. Veuillez réessayer.');
-        setLoadingCards(false);
-      }
+      setLoadingCards(false);
+    }
     };
     
     fetchFlashcards();

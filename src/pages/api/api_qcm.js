@@ -106,6 +106,15 @@ async function getFileFromSupabaseStorage(filePath, authToken) {
     return data; // Retourne le buffer du fichier
   } catch (error) {
     console.error('Erreur lors de la récupération du fichier depuis Supabase:', error);
+    
+    // Vérifier si nous sommes en environnement de développement local
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Environnement de développement détecté. Utilisation d\'un fichier de test par défaut.');
+      // Renvoyer un buffer de fichier vide ou un exemple
+      // Pour le développement local, on crée un buffer d'un fichier texte simple
+      return Buffer.from('Contenu de test pour le développement local. Ce document est utilisé quand le vrai fichier est inaccessible.');
+    }
+    
     throw error;
   }
 }
@@ -496,7 +505,17 @@ export default async function handler(req, res) {
       document = existingDocument;
       
       // Récupérer le fichier depuis Supabase Storage
-      fileBuffer = await getFileFromSupabaseStorage(document.file_path, token);
+      try {
+        fileBuffer = await getFileFromSupabaseStorage(document.file_path, token);
+      } catch (error) {
+        console.error('Impossible de récupérer le fichier. Utilisation d\'un fichier de secours:', error);
+        // En cas d'erreur, créer un buffer par défaut pour pouvoir continuer
+        if (process.env.NODE_ENV === 'development') {
+          fileBuffer = Buffer.from('Contenu de test pour le développement local. Ce document est utilisé quand le vrai fichier est inaccessible.');
+        } else {
+          throw error; // En production, on propage l'erreur
+        }
+      }
       fileName = path.basename(document.file_path);
 
       // Générer les QCM directement à partir du document avec Document QnA
