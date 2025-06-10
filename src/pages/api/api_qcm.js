@@ -1,14 +1,13 @@
-import { OpenAI } from 'openai';
+import { Mistral } from '@mistralai/mistralai';
 import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import PDFParser from 'pdf2json';
 
-// Configuration OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Configuration Mistral AI
+const mistral = new Mistral({
+  apiKey: process.env.MISTRAL_API_KEY,
 });
 
 // Configuration Supabase
@@ -27,60 +26,64 @@ const upload = multer({
   })
 });
 
-// Fonction pour extraire le texte d'un PDF
-async function extractTextFromPDF(filePath) {
-  return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser();
-    
-    pdfParser.on('pdfParser_dataReady', (pdfData) => {
-      try {
-        const text = pdfData.Pages.map(page => 
-          page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(' ')
-        ).join('\n');
-        resolve(text);
-      } catch (error) {
-        console.error("Erreur lors de l'extraction du texte:", error);
-        reject(error);
-      }
-    });
-    
-    pdfParser.on('pdfParser_dataError', (error) => {
-      console.error("Erreur lors du parsing du PDF:", error);
-      reject(error);
-    });
-    
-    pdfParser.loadPDF(filePath);
-  });
+// Fonction pour encoder un fichier en base64
+function encodeFileToBase64(filePath) {
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    return fileBuffer.toString('base64');
+  } catch (error) {
+    console.error(`Erreur lors de l'encodage du fichier en base64:`, error);
+    return null;
+  }
 }
 
-// Fonction pour analyser une image avec GPT-4o
-async function analyzeImageWithGPT4o(imagePath) {
-  const imageBuffer = fs.readFileSync(imagePath);
-  const base64Image = imageBuffer.toString('base64');
-  
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: "Analyze this image and extract the educational content from it. Provide a detailed explanation of the concepts shown."
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Image}`
-            }
-          }
-        ]
+// Fonction pour déboguer la structure d'un objet de manière sécurisée
+function debugObjectStructure(obj, maxDepth = 3) {
+  // Fonction récursive pour explorer les propriétés avec limitation de profondeur
+  function explore(obj, depth = 0) {
+    if (depth > maxDepth) return "[max depth reached]";
+    if (obj === null) return "null";
+    if (obj === undefined) return "undefined";
+    
+    const type = typeof obj;
+    
+    // Types primitifs
+    if (type !== "object") return `[${type}] ${String(obj).substring(0, 100)}${String(obj).length > 100 ? '...' : ''}`;
+    
+    // Pour éviter les erreurs de circularité
+    try {
+      // Arrays
+      if (Array.isArray(obj)) {
+        if (obj.length === 0) return "[]";
+        if (depth === maxDepth) return `[Array(${obj.length})]`;
+        
+        return `[Array(${obj.length})] [${obj.slice(0, 3).map(item => explore(item, depth + 1)).join(', ')}${obj.length > 3 ? ', ...' : ''}]`;
       }
-    ],
-    max_tokens: 1000
-  });
+      
+      // Objets
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return "{}";
+      if (depth === maxDepth) return `{Object with ${keys.length} keys: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? ', ...' : ''}}`;
+      
+      const entries = keys.slice(0, 10).map(key => {
+        try {
+          return `"${key}": ${explore(obj[key], depth + 1)}`;
+        } catch (e) {
+          return `"${key}": [Error: ${e.message}]`;
+        }
+      });
+      
+      return `{${entries.join(', ')}${keys.length > 10 ? ', ...' : ''}}`;
+    } catch (e) {
+      return `[Error: ${e.message}]`;
+    }
+  }
   
-  return response.choices[0].message.content;
+  try {
+    return explore(obj);
+  } catch (e) {
+    return `Failed to debug object: ${e.message}`;
+  }
 }
 
 // Fonction pour extraire le JSON d'une chaîne potentiellement formatée en Markdown
@@ -141,84 +144,208 @@ function extractJSONFromMarkdown(text) {
   return cleanedText;
 }
 
-// Fonction pour générer des QCM avec GPT-4o à partir de texte
-async function generateQCMFromText(content, numberOfQuestions, difficultParts = '') {
-  const prompt = difficultParts 
-    ? `Crée ${numberOfQuestions} questions à choix multiples à partir du contenu suivant. Insiste particulièrement sur ces concepts difficiles: ${difficultParts}.`
-    : `Crée ${numberOfQuestions} questions à choix multiples à partir du contenu suivant.`;
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "system",
-        content: `Tu es un éducateur professionnel qui crée des QCM pour les étudiants. 
-        
-        INSTRUCTIONS IMPORTANTES:
-        - Chaque question doit avoir exactement 4 options
-        - Mélange le nombre de réponses correctes:
-          * Environ 60% des questions doivent avoir 1 réponse correcte
-          * Environ 30% des questions doivent avoir 2 réponses correctes
-          * Environ 10% des questions doivent avoir 3 réponses correctes
-          * JAMAIS de questions avec 0 ou 4 réponses correctes
-        - Les options correctes doivent être mélangées aléatoirement parmi les options
-        - Les options incorrectes doivent être plausibles mais clairement fausses
-        - Retourne UNIQUEMENT un tableau JSON sans formatage Markdown
-        
-        Format JSON attendu:
-        [
-          {
-            "question": "Le texte de la question",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "correctOptions": [0, 2], // indices des options correctes (0-indexé)
-            "explanation": "Explication courte de la réponse correcte"
-          },
-          ...
-        ]`
-      },
-      {
-        role: "user",
-        content: `${prompt}
-        
-        Contenu: ${content}
-        
-        Retourne un tableau JSON avec des questions à choix multiples. Chaque question doit suivre exactement le format demandé, avec un nombre variable de bonnes réponses (1, 2 ou 3 mais jamais 0 ou 4).`
-      }
-    ],
-    max_tokens: 3000
-  });
-
-  const questionsText = response.choices[0].message.content;
-  
+// Fonction pour générer des QCM avec Mistral Document QnA
+async function generateQCMFromDocument(filePath, numberOfQuestions, difficultParts = '') {
   try {
-    // Essayer de parser directement
+    console.log(`Génération de QCM à partir du document: ${filePath}`);
+    
+    // Vérifier que le fichier existe
+    if (!fs.existsSync(filePath)) {
+      console.error(`Le fichier n'existe pas: ${filePath}`);
+      return createFallbackQuestions(numberOfQuestions);
+    }
+
+    // Au lieu d'encoder en base64, télécharger le fichier et obtenir une URL signée
+    console.log("Téléchargement du fichier sur Mistral Files API...");
+    const fileBuffer = fs.readFileSync(filePath);
+    const fileName = path.basename(filePath);
+    
+    // Télécharger le fichier via l'API de fichiers Mistral
+    const uploadedFile = await mistral.files.upload({
+      file: {
+        fileName: fileName,
+        content: fileBuffer,
+      },
+      purpose: "ocr"
+    });
+    
+    console.log("Fichier téléchargé avec succès, ID:", uploadedFile.id);
+    
+    // Obtenir l'URL signée pour le fichier
+    const signedUrl = await mistral.files.getSignedUrl({
+      fileId: uploadedFile.id,
+    });
+    
+    console.log("URL signée obtenue avec succès");
+    
+    // Construire le prompt pour la génération de QCM
+    const difficultyText = difficultParts 
+      ? `en insistant particulièrement sur ces concepts: ${difficultParts}` 
+      : '';
+    
+    const userPrompt = `Analyse ce document et génère ${numberOfQuestions} questions à choix multiples (QCM) de haute qualité ${difficultyText}. 
+
+CONSIGNES IMPORTANTES:
+1. Chaque question doit avoir exactement 4 options
+2. Le nombre de réponses correctes doit varier (environ 60% avec 1 bonne réponse, 30% avec 2 bonnes réponses, 10% avec 3 bonnes réponses)
+3. Tu ne dois JAMAIS générer de question avec 0 ou 4 réponses correctes
+4. Assure-toi que les options incorrectes sont plausibles mais clairement fausses
+5. Chaque question doit avoir une explication qui justifie les réponses correctes
+
+RENVOIE UNIQUEMENT UN TABLEAU JSON SUIVANT EXACTEMENT CE FORMAT:
+[
+  {
+    "question": "Question sur le document",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctOptions": [0, 2], // Indices des options correctes (0 = Option A, 1 = Option B, etc.)
+    "explanation": "Explication détaillée des réponses correctes"
+  }
+]
+
+Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniquement le tableau JSON pur.`;
+
+    // Appeler l'API Mistral Document QnA avec l'URL signée
+    console.log("Envoi de la requête à Mistral Document QnA...");
+    const response = await mistral.chat.complete({
+      model: "mistral-large-2411",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: userPrompt
+            },
+            {
+              type: "document_url",
+              documentUrl: signedUrl.url // Utiliser l'URL signée au lieu du base64
+            }
+          ]
+        }
+      ],
+      temperature: 0.3,
+      response_format: { type: "json" },
+      max_tokens: 3000
+    });
+
+    // Extraire la réponse
+    const responseContent = response.choices[0].message.content;
+    console.log("Réponse reçue de Mistral Document QnA, longueur:", responseContent.length);
+    
+    // Nettoyer et valider le JSON
     try {
-      return JSON.parse(questionsText);
-    } catch (directParseError) {
-      // Si ça échoue, extraire le JSON potentiel du markdown
-      const extractedJSON = extractJSONFromMarkdown(questionsText);
+      // Tentative de parser le JSON directement
+      const parsedQuestions = JSON.parse(responseContent);
       
+      // Validation du format des questions
+      if (!Array.isArray(parsedQuestions)) {
+        throw new Error("Le résultat n'est pas un tableau JSON");
+      }
+      
+      console.log(`Parsing JSON réussi, ${parsedQuestions.length} questions trouvées`);
+      
+      // Vérifier et corriger chaque question si nécessaire
+      const validatedQuestions = parsedQuestions.map((question, index) => {
+        const validatedQuestion = {
+          question: question.question || `Question ${index + 1} sur le document`,
+          options: Array.isArray(question.options) && question.options.length === 4 
+            ? question.options 
+            : ["Option A", "Option B", "Option C", "Option D"],
+          correctOptions: Array.isArray(question.correctOptions) ? question.correctOptions : [0],
+          explanation: question.explanation || "Explication non fournie."
+        };
+        
+        // S'assurer que correctOptions contient des indices valides
+        validatedQuestion.correctOptions = validatedQuestion.correctOptions.filter(
+          index => Number.isInteger(index) && index >= 0 && index < validatedQuestion.options.length
+        );
+        
+        // S'assurer qu'il y a au moins une option correcte
+        if (validatedQuestion.correctOptions.length === 0) {
+          validatedQuestion.correctOptions = [0];
+        }
+        
+        return validatedQuestion;
+      });
+      
+      console.log(`${validatedQuestions.length} questions validées avec succès`);
+      return validatedQuestions;
+    } catch (parseError) {
+      console.error("Erreur lors du parsing JSON:", parseError);
+      
+      // Essayer d'extraire le JSON du texte formaté
       try {
-        return JSON.parse(extractedJSON);
-      } catch (extractedParseError) {
-        console.error("Impossible de parser le JSON des questions:", extractedParseError);
-        throw new Error("Erreur lors de la génération des questions");
+        const extractedJSON = extractJSONFromMarkdown(responseContent);
+        const parsedExtractedQuestions = JSON.parse(extractedJSON);
+        
+        if (!Array.isArray(parsedExtractedQuestions)) {
+          throw new Error("Le résultat extrait n'est pas un tableau JSON");
+        }
+        
+        // Vérifier et corriger chaque question
+        const validatedQuestions = parsedExtractedQuestions.map((question, index) => {
+          return {
+            question: question.question || `Question ${index + 1} sur le document`,
+            options: Array.isArray(question.options) && question.options.length === 4 
+              ? question.options 
+              : ["Option A", "Option B", "Option C", "Option D"],
+            correctOptions: Array.isArray(question.correctOptions) ? question.correctOptions : [0],
+            explanation: question.explanation || "Explication non fournie."
+          };
+        });
+        
+        console.log(`${validatedQuestions.length} questions extraites et validées avec succès`);
+        return validatedQuestions;
+      } catch (extractError) {
+        console.error("Impossible d'extraire des questions valides:", extractError);
+        return createFallbackQuestions(numberOfQuestions);
       }
     }
   } catch (error) {
-    console.error("Erreur lors du parsing du JSON:", error);
-    console.error("Réponse brute:", questionsText);
-    
-    // Au lieu de lancer une erreur, on renvoie des questions d'erreur
-    return [
-      {
-        question: "Erreur lors de la génération des questions",
-        options: ["Réessayer", "Contacter le support", "Vérifier la connexion", "Utiliser un autre document"],
-        correctOptions: [0],
-        explanation: "Une erreur est survenue lors de la génération des questions."
-      }
-    ];
+    console.error("Erreur lors de la génération des QCM avec Document QnA:", error);
+    console.error("Message d'erreur complet:", error.message);
+    return createFallbackQuestions(numberOfQuestions);
   }
+}
+
+// Fonction pour créer une question de secours générique
+function createGenericQuestion(questionNumber) {
+  return {
+    question: `Question ${questionNumber} sur le document analysé`,
+    options: [
+      "Le document contient cette information",
+      "Le document ne contient pas cette information",
+      "L'information est partiellement présente dans le document",
+      "Impossible de déterminer avec les informations disponibles"
+    ],
+    correctOptions: [3],
+    explanation: "En raison de limitations dans l'analyse du document, nous ne pouvons pas fournir une question spécifique au contenu."
+  };
+}
+
+// Fonction pour créer un ensemble de questions de secours
+function createFallbackQuestions(numberOfQuestions) {
+  const fallbackQuestions = [];
+  
+  fallbackQuestions.push({
+    question: "Problème lors de la génération des questions basées sur le document",
+    options: [
+      "Réessayer avec le même document",
+      "Essayer avec un document mieux formaté",
+      "Contacter le support technique",
+      "Essayer avec un document plus court"
+    ],
+    correctOptions: [1, 3],
+    explanation: "La génération de QCM nécessite un document exploitable par l'IA."
+  });
+  
+  // Ajouter des questions supplémentaires si nécessaire
+  while (fallbackQuestions.length < numberOfQuestions) {
+    fallbackQuestions.push(createGenericQuestion(fallbackQuestions.length + 1));
+  }
+  
+  console.log(`${fallbackQuestions.length} questions de secours générées`);
+  return fallbackQuestions;
 }
 
 // Route API principale
@@ -254,7 +381,6 @@ export default async function handler(req, res) {
     }
 
     let document;
-    let content = '';
     let questions = [];
     let userId;
     let numberOfQuestions;
@@ -302,16 +428,8 @@ export default async function handler(req, res) {
 
       document = existingDocument;
 
-      // Extraire le contenu selon le type de fichier
-      if (document.file_type === 'pdf') {
-        // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des QCM
-        content = await extractTextFromPDF(document.file_path);
-      } else if (document.file_type.startsWith('image')) {
-        // Pour les images: analyser directement avec GPT-4o (capacité de vision)
-        content = await analyzeImageWithGPT4o(document.file_path);
-      } else {
-        return res.status(400).json({ error: 'Format de fichier non pris en charge' });
-      }
+      // Générer les QCM directement à partir du document avec Document QnA
+      questions = await generateQCMFromDocument(document.file_path, numberOfQuestions, difficultParts);
     } else {
       // Traitement d'un nouveau fichier
       // Middleware multer pour gérer le téléchargement de fichier
@@ -357,20 +475,9 @@ export default async function handler(req, res) {
 
       document = newDocument;
       
-      // Traitement spécifique selon le type de fichier
-      if (file.mimetype === 'application/pdf') {
-        // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des QCM
-        content = await extractTextFromPDF(file.path);
-      } else if (file.mimetype.startsWith('image/')) {
-        // Pour les images: analyser directement avec GPT-4o (capacité de vision)
-        content = await analyzeImageWithGPT4o(file.path);
-      } else {
-        return res.status(400).json({ error: 'Format de fichier non pris en charge' });
-      }
+      // Générer les QCM directement à partir du document avec Document QnA
+      questions = await generateQCMFromDocument(file.path, numberOfQuestions, difficultParts);
     }
-
-    // Générer les questions QCM à partir du contenu
-    questions = await generateQCMFromText(content, numberOfQuestions, difficultParts);
 
     // Créer un nouveau quiz
     const { data: quiz, error: quizError } = await supabase

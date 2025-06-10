@@ -1,15 +1,13 @@
-import { OpenAI } from 'openai';
+import { Mistral } from '@mistralai/mistralai';
 import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
-import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import PDFParser from 'pdf2json';
 
-// Configuration OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Configuration Mistral AI
+const mistral = new Mistral({
+  apiKey: process.env.MISTRAL_API_KEY,
 });
 
 // Configuration Supabase
@@ -48,60 +46,64 @@ const upload = multer({
   }
 });
 
-// Fonction pour extraire le texte d'un PDF
-async function extractTextFromPDF(filePath) {
-  return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser();
-    
-    pdfParser.on('pdfParser_dataReady', (pdfData) => {
-      try {
-        const text = pdfData.Pages.map(page => 
-          page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(' ')
-        ).join('\n');
-        resolve(text);
-      } catch (error) {
-        console.error("Erreur lors de l'extraction du texte:", error);
-        reject(error);
-      }
-    });
-    
-    pdfParser.on('pdfParser_dataError', (error) => {
-      console.error("Erreur lors du parsing du PDF:", error);
-      reject(error);
-    });
-    
-    pdfParser.loadPDF(filePath);
-  });
+// Fonction pour encoder un fichier en base64
+function encodeFileToBase64(filePath) {
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    return fileBuffer.toString('base64');
+  } catch (error) {
+    console.error(`Erreur lors de l'encodage du fichier en base64:`, error);
+    return null;
+  }
 }
 
-// Fonction pour analyser une image avec GPT-4o
-async function analyzeImageWithGPT4o(imagePath) {
-  const imageBuffer = fs.readFileSync(imagePath);
-  const base64Image = imageBuffer.toString('base64');
-  
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: "Analyze this image and extract the educational content from it. Provide a detailed explanation of the concepts shown."
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Image}`
-            }
-          }
-        ]
+// Fonction pour déboguer la structure d'un objet de manière sécurisée
+function debugObjectStructure(obj, maxDepth = 3) {
+  // Fonction récursive pour explorer les propriétés avec limitation de profondeur
+  function explore(obj, depth = 0) {
+    if (depth > maxDepth) return "[max depth reached]";
+    if (obj === null) return "null";
+    if (obj === undefined) return "undefined";
+    
+    const type = typeof obj;
+    
+    // Types primitifs
+    if (type !== "object") return `[${type}] ${String(obj).substring(0, 100)}${String(obj).length > 100 ? '...' : ''}`;
+    
+    // Pour éviter les erreurs de circularité
+    try {
+      // Arrays
+      if (Array.isArray(obj)) {
+        if (obj.length === 0) return "[]";
+        if (depth === maxDepth) return `[Array(${obj.length})]`;
+        
+        return `[Array(${obj.length})] [${obj.slice(0, 3).map(item => explore(item, depth + 1)).join(', ')}${obj.length > 3 ? ', ...' : ''}]`;
       }
-    ],
-    max_tokens: 1000
-  });
+      
+      // Objets
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return "{}";
+      if (depth === maxDepth) return `{Object with ${keys.length} keys: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? ', ...' : ''}}`;
+      
+      const entries = keys.slice(0, 10).map(key => {
+        try {
+          return `"${key}": ${explore(obj[key], depth + 1)}`;
+        } catch (e) {
+          return `"${key}": [Error: ${e.message}]`;
+        }
+      });
+      
+      return `{${entries.join(', ')}${keys.length > 10 ? ', ...' : ''}}`;
+    } catch (e) {
+      return `[Error: ${e.message}]`;
+    }
+  }
   
-  return response.choices[0].message.content;
+  try {
+    return explore(obj);
+  } catch (e) {
+    return `Failed to debug object: ${e.message}`;
+  }
 }
 
 // Fonction pour extraire le JSON d'une chaîne potentiellement formatée en Markdown
@@ -162,109 +164,172 @@ function extractJSONFromMarkdown(text) {
   return cleanedText;
 }
 
-// Fonction pour générer des mémocartes avec GPT-4o à partir de texte
-async function generateMemocardsFromText(content, numberOfCards, difficultParts = '') {
-  const prompt = difficultParts 
-    ? `Crée ${numberOfCards} mémo cartes à partir du contenu suivant. Insiste particulièrement sur ces concepts difficiles: ${difficultParts}. Formate chaque carte comme un objet JSON avec les champs 'question' et 'answer' dans un tableau.`
-    : `Crée ${numberOfCards} mémo cartes à partir du contenu suivant. Formate chaque carte comme un objet JSON avec les champs 'question' et 'answer' dans un tableau.`;
-  
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "system",
-        content: "Tu es un éducateur professionnel qui crée des mémo cartes pour les étudiants. Crée des paires question-réponse concises, claires et éducatives. Retourne UNIQUEMENT le tableau JSON sans formatage Markdown ni texte supplémentaire."
-      },
-      {
-        role: "user",
-        content: `${prompt} Contenu: ${content}`
-      }
-    ],
-    max_tokens: 2000
-  });
-
-  const flashcardsText = response.choices[0].message.content;
+// Fonction pour générer des mémocartes avec Mistral Document QnA
+async function generateMemocardsFromDocument(filePath, numberOfCards, difficultParts = '') {
   try {
-    // Essayer de parser directement
-    try {
-      return JSON.parse(flashcardsText);
-    } catch (directParseError) {
-      // Si ça échoue, extraire le JSON potentiel du markdown
-      const extractedJSON = extractJSONFromMarkdown(flashcardsText);
-      
-      try {
-        return JSON.parse(extractedJSON);
-      } catch (extractedParseError) {
-        // Plan B: transformer le texte en flashcards nous-mêmes
-        // si la structure ressemble à des flashcards mais n'est pas du JSON valide
-        console.log("Tentative de récupération des flashcards depuis le texte...");
-        
-        // Recherche de modèles question-réponse dans le texte
-        const cards = [];
-        const lines = flashcardsText.split('\n');
-        let currentQuestion = null;
-        
-        for (const line of lines) {
-          // Chercher des lignes qui semblent être des questions
-          if (line.includes("question") || line.includes("?")) {
-            // Si on avait déjà une question en cours, la finaliser
-            if (currentQuestion && currentQuestion.question) {
-              if (!currentQuestion.answer) currentQuestion.answer = "Pas de réponse fournie";
-              cards.push(currentQuestion);
-            }
-            // Démarrer une nouvelle question
-            currentQuestion = { question: line.replace(/.*"question"[: ]*"?/, '').replace(/".*/, '').trim() };
-            // Supprimer les caractères spéciaux potentiels
-            if (currentQuestion.question.endsWith(',') || currentQuestion.question.endsWith('"')) {
-              currentQuestion.question = currentQuestion.question.slice(0, -1);
-            }
-          } 
-          // Chercher des lignes qui semblent être des réponses
-          else if (currentQuestion && (line.includes("answer") || line.includes("réponse"))) {
-            currentQuestion.answer = line.replace(/.*"answer"[: ]*"?/, '').replace(/".*/, '').trim();
-            // Supprimer les caractères spéciaux potentiels
-            if (currentQuestion.answer.endsWith(',') || currentQuestion.answer.endsWith('"')) {
-              currentQuestion.answer = currentQuestion.answer.slice(0, -1);
-            }
-          }
-        }
-        
-        // Ajouter la dernière question si elle existe
-        if (currentQuestion && currentQuestion.question) {
-          if (!currentQuestion.answer) currentQuestion.answer = "Pas de réponse fournie";
-          cards.push(currentQuestion);
-        }
-        
-        // Si nous avons trouvé au moins une carte, on considère que c'est un succès
-        if (cards.length > 0) {
-          console.log(`Récupération réussie: ${cards.length} cartes extraites.`);
-          return cards;
-        }
-        
-        // Si toutes les tentatives échouent, on génère des cartes factices pour éviter l'échec complet
-        if (cards.length === 0) {
-          console.error("Impossible d'extraire des flashcards valides. Génération de cartes de secours.");
-          return [
+    console.log(`Génération de mémocartes à partir du document: ${filePath}`);
+    
+    // Vérifier que le fichier existe
+    if (!fs.existsSync(filePath)) {
+      console.error(`Le fichier n'existe pas: ${filePath}`);
+      return createFallbackCards(numberOfCards);
+    }
+
+    // Au lieu d'encoder en base64, télécharger le fichier et obtenir une URL signée
+    console.log("Téléchargement du fichier sur Mistral Files API...");
+    const fileBuffer = fs.readFileSync(filePath);
+    const fileName = path.basename(filePath);
+    
+    // Télécharger le fichier via l'API de fichiers Mistral
+    const uploadedFile = await mistral.files.upload({
+      file: {
+        fileName: fileName,
+        content: fileBuffer,
+      },
+      purpose: "ocr"
+    });
+    
+    console.log("Fichier téléchargé avec succès, ID:", uploadedFile.id);
+    
+    // Obtenir l'URL signée pour le fichier
+    const signedUrl = await mistral.files.getSignedUrl({
+      fileId: uploadedFile.id,
+    });
+    
+    console.log("URL signée obtenue avec succès");
+    
+    // Construire le prompt pour la génération de mémocartes
+    const difficultyText = difficultParts 
+      ? `en insistant particulièrement sur ces concepts: ${difficultParts}` 
+      : '';
+    
+    const userPrompt = `Analyse ce document et génère ${numberOfCards} mémocartes (paires question-réponse) de haute qualité ${difficultyText}. 
+
+CONSIGNES IMPORTANTES:
+1. Chaque mémocarte doit comporter une question claire et une réponse détaillée
+2. Les questions doivent tester la compréhension du contenu du document
+3. Les réponses doivent être informatives, précises et basées sur le document
+4. Varie les types de questions (définitions, explications, relations cause-effet, etc.)
+5. Assure-toi que les mémocartes couvrent les points importants du document
+
+RENVOIE UNIQUEMENT UN TABLEAU JSON SUIVANT EXACTEMENT CE FORMAT:
+[
+  {
+    "question": "Question précise sur le document",
+    "answer": "Réponse détaillée qui explique le concept"
+  }
+]
+
+Ne mets pas de texte ou d'explications avant ou après le JSON. Renvoie uniquement le tableau JSON pur.`;
+
+    // Appeler l'API Mistral Document QnA avec l'URL signée
+    console.log("Envoi de la requête à Mistral Document QnA...");
+    const response = await mistral.chat.complete({
+      model: "mistral-large-2411",
+      messages: [
+        {
+          role: "user",
+          content: [
             {
-              question: "Question récupérée du contenu",
-              answer: "Désolé, nous n'avons pas pu générer les flashcards correctement. Veuillez réessayer."
+              type: "text",
+              text: userPrompt
+            },
+            {
+              type: "document_url",
+              documentUrl: signedUrl.url // Utiliser l'URL signée au lieu du base64
             }
-          ];
+          ]
         }
+      ],
+      temperature: 0.3,
+      response_format: { type: "json" },
+      max_tokens: 3000
+    });
+
+    // Extraire la réponse
+    const responseContent = response.choices[0].message.content;
+    console.log("Réponse reçue de Mistral Document QnA, longueur:", responseContent.length);
+    
+    // Nettoyer et valider le JSON
+    try {
+      // Tentative de parser le JSON directement
+      const parsedCards = JSON.parse(responseContent);
+      
+      // Validation du format des cartes
+      if (!Array.isArray(parsedCards)) {
+        throw new Error("Le résultat n'est pas un tableau JSON");
+      }
+      
+      console.log(`Parsing JSON réussi, ${parsedCards.length} mémocartes trouvées`);
+      
+      // Vérifier et corriger chaque carte si nécessaire
+      const validatedCards = parsedCards.map((card, index) => {
+        return {
+          question: card.question || `Question ${index + 1} sur le document`,
+          answer: card.answer || "Pas de réponse fournie pour cette question."
+        };
+      });
+      
+      console.log(`${validatedCards.length} mémocartes validées avec succès`);
+      return validatedCards;
+    } catch (parseError) {
+      console.error("Erreur lors du parsing JSON:", parseError);
+      
+      // Essayer d'extraire le JSON du texte formaté
+      try {
+        const extractedJSON = extractJSONFromMarkdown(responseContent);
+        const parsedExtractedCards = JSON.parse(extractedJSON);
+        
+        if (!Array.isArray(parsedExtractedCards)) {
+          throw new Error("Le résultat extrait n'est pas un tableau JSON");
+        }
+        
+        // Vérifier et corriger chaque carte
+        const validatedCards = parsedExtractedCards.map((card, index) => {
+          return {
+            question: card.question || `Question ${index + 1} sur le document`,
+            answer: card.answer || "Pas de réponse fournie pour cette question."
+          };
+        });
+        
+        console.log(`${validatedCards.length} mémocartes extraites et validées avec succès`);
+        return validatedCards;
+      } catch (extractError) {
+        console.error("Impossible d'extraire des mémocartes valides:", extractError);
+        return createFallbackCards(numberOfCards);
       }
     }
   } catch (error) {
-    console.error("Erreur lors du parsing du JSON:", error);
-    console.error("Réponse brute:", flashcardsText);
-    
-    // Au lieu de lancer une erreur, on renvoie une carte d'erreur
-    return [
-      {
-        question: "Erreur lors de la génération",
-        answer: "Nous avons rencontré un problème lors de la génération des flashcards. Veuillez réessayer."
-      }
-    ];
+    console.error("Erreur lors de la génération des mémocartes avec Document QnA:", error);
+    console.error("Message d'erreur complet:", error.message);
+    return createFallbackCards(numberOfCards);
   }
+}
+
+// Fonction pour créer une mémocarte de secours générique
+function createGenericCard(cardNumber) {
+  return {
+    question: `Question ${cardNumber} sur le document analysé`,
+    answer: "En raison de limitations dans l'analyse du document, nous ne pouvons pas fournir une mémocarte spécifique au contenu. Veuillez consulter le document original."
+  };
+}
+
+// Fonction pour créer un ensemble de mémocartes de secours
+function createFallbackCards(numberOfCards) {
+  const fallbackCards = [];
+  
+  fallbackCards.push({
+    question: "Problème lors de la génération des mémocartes basées sur le document",
+    answer: "La génération de mémocartes nécessite un document exploitable par l'IA. Essayez avec un document mieux formaté ou contenant plus de texte."
+  });
+  
+  // Ajouter des cartes supplémentaires si nécessaire
+  while (fallbackCards.length < numberOfCards) {
+    fallbackCards.push(createGenericCard(fallbackCards.length + 1));
+  }
+  
+  console.log(`${fallbackCards.length} mémocartes de secours générées`);
+  return fallbackCards;
 }
 
 // Route API principale
@@ -300,7 +365,6 @@ export default async function handler(req, res) {
     }
 
     let document;
-    let content = '';
     let flashcards = [];
     let userId;
     let numberOfCards;
@@ -348,16 +412,8 @@ export default async function handler(req, res) {
 
       document = existingDocument;
 
-      // Extraire le contenu selon le type de fichier
-      if (document.file_type === 'pdf') {
-        // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des mémocartes
-        content = await extractTextFromPDF(document.file_path);
-      } else if (document.file_type.startsWith('image')) {
-        // Pour les images: analyser directement avec GPT-4o (capacité de vision)
-        content = await analyzeImageWithGPT4o(document.file_path);
-      } else {
-        return res.status(400).json({ error: 'Format de fichier non pris en charge' });
-      }
+      // Générer les mémocartes directement à partir du document avec Document QnA
+      flashcards = await generateMemocardsFromDocument(document.file_path, numberOfCards, difficultParts);
     } else {
       // Traitement d'un nouveau fichier
       // Middleware multer pour gérer le téléchargement de fichier
@@ -404,20 +460,9 @@ export default async function handler(req, res) {
 
       document = newDocument;
       
-      // Traitement spécifique selon le type de fichier
-      if (file.mimetype === 'application/pdf') {
-        // Pour les PDFs: extraire le texte puis utiliser GPT-4o pour générer des mémocartes
-        content = await extractTextFromPDF(file.path);
-      } else if (file.mimetype.startsWith('image/')) {
-        // Pour les images: analyser directement avec GPT-4o (capacité de vision)
-        content = await analyzeImageWithGPT4o(file.path);
-      } else {
-        return res.status(400).json({ error: 'Format de fichier non pris en charge' });
-      }
+      // Générer les mémocartes directement à partir du document avec Document QnA
+      flashcards = await generateMemocardsFromDocument(file.path, numberOfCards, difficultParts);
     }
-
-    // Générer les mémocartes à partir du contenu
-    flashcards = await generateMemocardsFromText(content, numberOfCards, difficultParts);
 
     // Créer une nouvelle liste de flashcards
     const { data: flashcardList, error: listError } = await supabase
