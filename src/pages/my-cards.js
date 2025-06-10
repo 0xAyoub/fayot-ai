@@ -170,7 +170,15 @@ const MyCardsComponent = ({ user }) => {
                   <button className="text-gray-500 p-1 hover:text-[#25a1e1] transition-colors ml-1">
                     <FaEdit className="w-3.5 h-3.5" />
                   </button>
-                  <button className="text-gray-500 p-1 hover:text-red-500 transition-colors ml-1">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('Êtes-vous sûr de vouloir supprimer ces mémo cartes ?')) {
+                        handleDeleteDeck(deck.id);
+                      }
+                    }} 
+                    className="text-gray-500 p-1 hover:text-red-500 transition-colors ml-1"
+                  >
                     <FaTrashAlt className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -186,6 +194,38 @@ const MyCardsComponent = ({ user }) => {
       </div>
     </div>
   );
+
+  // Fonction de suppression des mémo cartes
+  const handleDeleteDeck = async (deckId) => {
+    try {
+      // Supprimer les flashcards associées à la liste
+      const { error: flashcardsDeleteError } = await supabase
+        .from('flashcards')
+        .delete()
+        .eq('list_id', deckId);
+      
+      // Supprimer la liste de flashcards
+      const { error: listDeleteError } = await supabase
+        .from('flashcard_lists')
+        .delete()
+        .eq('id', deckId);
+      
+      if (listDeleteError) throw listDeleteError;
+      
+      // Mettre à jour l'état pour retirer le deck de la liste
+      setDecks(decks.filter(deck => deck.id !== deckId));
+      
+      // Si le deck supprimé était sélectionné, désélectionner
+      if (selectedDeck === deckId) {
+        setSelectedDeck(null);
+        setPreviewOpen(false);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la suppression des mémo cartes:', error);
+      alert('Erreur lors de la suppression des mémo cartes. Veuillez réessayer.');
+    }
+  };
 
   const DesktopView = () => (
     <div className="px-6 py-4">
@@ -264,7 +304,15 @@ const MyCardsComponent = ({ user }) => {
                           <button className="text-gray-500 p-1.5 hover:text-[#25a1e1] transition-colors ml-0.5 rounded-md hover:bg-[#68ccff]/10">
                             <FaEdit className="w-3.5 h-3.5" />
                           </button>
-                          <button className="text-gray-500 p-1.5 hover:text-red-500 transition-colors ml-0.5 rounded-md hover:bg-red-50">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm('Êtes-vous sûr de vouloir supprimer ces mémo cartes ?')) {
+                                handleDeleteDeck(deck.id);
+                              }
+                            }} 
+                            className="text-gray-500 p-1.5 hover:text-red-500 transition-colors ml-0.5 rounded-md hover:bg-red-50"
+                          >
                             <FaTrashAlt className="w-3.5 h-3.5" />
                           </button>
                         </div>

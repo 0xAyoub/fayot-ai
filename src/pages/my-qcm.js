@@ -170,7 +170,15 @@ const MyQcmComponent = ({ user }) => {
                   <button className="text-gray-500 p-1 hover:text-[#25a1e1] transition-colors ml-1">
                     <FaEdit className="w-3.5 h-3.5" />
                   </button>
-                  <button className="text-gray-500 p-1 hover:text-red-500 transition-colors ml-1">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('Êtes-vous sûr de vouloir supprimer ce QCM ?')) {
+                        handleDeleteQcm(qcm.id);
+                      }
+                    }} 
+                    className="text-gray-500 p-1 hover:text-red-500 transition-colors ml-1"
+                  >
                     <FaTrashAlt className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -261,10 +269,26 @@ const MyQcmComponent = ({ user }) => {
                           <button className="text-gray-500 p-1.5 hover:text-[#25a1e1] transition-colors rounded-md hover:bg-[#68ccff]/10">
                             <FaShareAlt className="w-3.5 h-3.5" />
                           </button>
-                          <button className="text-gray-500 p-1.5 hover:text-[#25a1e1] transition-colors ml-0.5 rounded-md hover:bg-[#68ccff]/10">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm('Êtes-vous sûr de vouloir supprimer ce QCM ?')) {
+                                handleDeleteQcm(qcm.id);
+                              }
+                            }} 
+                            className="text-gray-500 p-1.5 hover:text-[#25a1e1] transition-colors ml-0.5 rounded-md hover:bg-[#68ccff]/10"
+                          >
                             <FaEdit className="w-3.5 h-3.5" />
                           </button>
-                          <button className="text-gray-500 p-1.5 hover:text-red-500 transition-colors ml-0.5 rounded-md hover:bg-red-50">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm('Êtes-vous sûr de vouloir supprimer ce QCM ?')) {
+                                handleDeleteQcm(qcm.id);
+                              }
+                            }} 
+                            className="text-gray-500 p-1.5 hover:text-red-500 transition-colors ml-0.5 rounded-md hover:bg-red-50"
+                          >
                             <FaTrashAlt className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -298,6 +322,38 @@ const MyQcmComponent = ({ user }) => {
       </div>
     </div>
   );
+
+  // Fonction de suppression des QCMs
+  const handleDeleteQcm = async (qcmId) => {
+    try {
+      // Supprimer les questions associées au QCM
+      const { error: questionsDeleteError } = await supabase
+        .from('quiz_questions')
+        .delete()
+        .eq('quiz_id', qcmId);
+      
+      // Supprimer le QCM
+      const { error: quizDeleteError } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('id', qcmId);
+      
+      if (quizDeleteError) throw quizDeleteError;
+      
+      // Mettre à jour l'état pour retirer le QCM de la liste
+      setQcms(qcms.filter(q => q.id !== qcmId));
+      
+      // Si le QCM supprimé était sélectionné, désélectionner
+      if (selectedQcm === qcmId) {
+        setSelectedQcm(null);
+        setPreviewOpen(false);
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la suppression du QCM:', error);
+      alert('Erreur lors de la suppression du QCM. Veuillez réessayer.');
+    }
+  };
 
   return (
     <div className='flex md:flex-row min-h-screen bg-gradient-to-br from-[#68ccff]/20 via-[#ebebd7] to-[#68ccff]/10'>

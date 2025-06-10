@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavBarComponent, SubscriptionBlock } from '../../components/NavBarComponent';
 import { useRouter } from 'next/router';
-import { FaCloudUploadAlt, FaPlus, FaArrowRight, FaGraduationCap, FaBrain, FaBook, FaLightbulb, FaStar, FaRocket, FaQuestionCircle, FaCrown, FaBars, FaRegFileAlt, FaRegListAlt, FaEye, FaFilePdf, FaImage, FaHome, FaStickyNote, FaUserAlt, FaCog, FaSignOutAlt, FaTrashAlt } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaPlus, FaArrowRight, FaGraduationCap, FaBrain, FaBook, FaLightbulb, FaStar, FaRocket, FaQuestionCircle, FaCrown, FaBars, FaRegFileAlt, FaRegListAlt, FaEye, FaFilePdf, FaImage, FaHome, FaStickyNote, FaUserAlt, FaCog, FaSignOutAlt, FaTrashAlt, FaClock } from 'react-icons/fa';
 import { CiHome, CiMenuBurger } from "react-icons/ci";
 import Link from 'next/link';
 import { BsCardHeading } from 'react-icons/bs';
@@ -105,93 +105,107 @@ const MyCourseComponent = ({ user }) => {
   
   // Interface mobile optimisée plus compacte
   const MobileView = () => (
-    <div className="min-h-screen mx-2 my-2 flex flex-col">
-      {/* Header simplifié */}
-      <div className="flex justify-between items-center px-3 py-2 bg-[#ebebd7] rounded-xl shadow-sm border border-[#68ccff]/30 mb-3">
-        <div className="flex items-center">
-          <img src="/fayotlogo.png" alt="Logo Fayot" className="h-8" />
-        </div>
+    <div className="p-3">
+      {/* Header avec titre et bouton d'ajout */}
+      <div className="flex justify-between items-center mb-3">
+        <h1 className="text-lg font-bold text-[#25a1e1]">Mes cours</h1>
         <button 
-          onClick={toggleMenu} 
-          className="p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-xl hover:bg-[#68ccff]/20 transition-colors duration-300"
+          onClick={toggleMenu}
+          className="p-2 text-[#25a1e1] bg-[#68ccff]/10 rounded-lg shadow-sm hover:bg-[#68ccff]/20 transition-colors duration-300"
         >
-          <CiMenuBurger className="w-5 h-5" />
+          <CiMenuBurger className="w-4 h-4" />
         </button>
       </div>
 
-      {/* En-tête de page */}
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-xl font-bold text-[#106996]">Mes Cours</h1>
+      {/* Message d'encouragement */}
+      <div className="bg-[#ebebd7] rounded-lg shadow-sm border border-[#68ccff]/30 p-2 mb-3 text-xs">
+        <p className="text-[#106996] font-medium">
+          <FaLightbulb className="inline-block text-yellow-500 mr-1" />
+          Importez vos cours et générez des QCMs ou mémo cartes en quelques clics !
+        </p>
+      </div>
+
+      {/* Bouton créer */}
+      <div className="mb-3">
         <button 
           onClick={handleUploadCourse}
-          className="bg-[#106996] text-[#ebebd7] text-sm font-medium py-1.5 px-3 rounded-xl shadow-sm flex items-center"
+          className="w-full bg-[#25a1e1] text-[#ebebd7] font-semibold py-1.5 px-3 rounded-lg hover:bg-[#106996] transition-colors duration-300 flex items-center justify-center shadow-sm text-sm"
         >
-          <FaPlus className="mr-1.5" /> Ajouter
+          <FaPlus className="mr-1.5" /> Ajouter un cours
         </button>
       </div>
-      
-      {/* Liste des cours - version compacte */}
-      <div className="flex-grow overflow-y-auto mb-3">
-        <div className="flex flex-col gap-2">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#25a1e1]"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center text-red-600 p-4">
-              Une erreur est survenue lors du chargement de vos cours.
-            </div>
-          ) : courses.length === 0 ? (
-            <div className="text-center text-gray-500 p-4">
-              Vous n'avez pas encore de cours. Commencez par en ajouter un !
-            </div>
-          ) : courses.map((course) => (
+
+      {/* Liste des cours */}
+      {loading ? (
+        <div className="bg-[#ebebd7] rounded-lg shadow-sm border border-[#68ccff]/30 p-3 text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#25a1e1] mx-auto mb-2"></div>
+          <p className="text-gray-600 text-sm">Chargement de vos cours...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-[#ebebd7] rounded-lg shadow-sm border border-red-200 p-3 text-center">
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
+      ) : courses.length === 0 ? (
+        <div className="bg-[#ebebd7] rounded-lg shadow-sm border border-[#68ccff]/30 p-3 text-center">
+          <p className="text-gray-600 mb-1 text-sm">Vous n'avez pas encore de cours.</p>
+          <p className="text-[#25a1e1] font-medium text-sm">Ajoutez votre premier cours !</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {courses.map((course) => (
             <div 
               key={course.id} 
-              className="bg-[#ebebd7] p-2 rounded-xl shadow-sm border border-[#68ccff]/30 relative flex h-16"
+              className="bg-[#ebebd7] rounded-lg shadow-sm border border-[#68ccff]/30 p-2.5 hover:shadow-md transition-shadow duration-300"
               onClick={() => setSelectedCourse(course.id)}
             >
-              <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ backgroundColor: course.color }}></div>
-              <div className="pl-1.5 flex-grow flex">
-                <div className="flex flex-col justify-between flex-grow">
-                  <h3 className="text-xs font-semibold text-[#106996] line-clamp-1">{course.title}</h3>
-                  <div className="flex items-center text-[10px] text-gray-500">
-                    {course.type === "pdf" ? 
-                      <FaFilePdf className="w-2.5 h-2.5 mr-0.5 text-red-500" /> : 
-                      <FaImage className="w-2.5 h-2.5 mr-0.5 text-blue-500" />
-                    }
-                    <span>{course.pages} pages</span>
-                  </div>
-                  <div className="flex space-x-1">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCreateCards(course.id);
-                      }}
-                      className="bg-[#25a1e1]/10 text-[#25a1e1] text-[10px] font-medium py-0.5 px-1 rounded-md shadow-sm flex items-center"
-                    >
-                      <BsCardHeading className="mr-0.5 w-2 h-2" /> Mémo
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCreateQuiz(course.id);
-                      }}
-                      className="bg-[#106996]/10 text-[#106996] text-[10px] font-medium py-0.5 px-1 rounded-md shadow-sm flex items-center"
-                    >
-                      <FaQuestionCircle className="mr-0.5 w-2 h-2" /> QCM
-                    </button>
+              <div className="flex items-start">
+                <div 
+                  className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 mr-2.5"
+                  style={{ backgroundColor: course.color }}
+                >
+                  {course.type === "pdf" ? 
+                    <FaFilePdf className="text-[#106996] w-5 h-5" /> : 
+                    <FaImage className="text-[#106996] w-5 h-5" />
+                  }
+                </div>
+                <div className="flex-grow min-w-0">
+                  <h3 className="font-semibold text-[#106996] text-sm mb-0.5 truncate">{course.title}</h3>
+                  <div className="flex items-center text-xs text-gray-500">
+                    <FaClock className="mr-1 flex-shrink-0" />
+                    <span className="truncate">Mis à jour le {course.lastUpdated}</span>
                   </div>
                 </div>
-                <div className="flex flex-col">
+              </div>
+              <div className="mt-2 flex justify-between">
+                <div className="flex space-x-1">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateCards(course.id);
+                    }}
+                    className="bg-[#25a1e1]/10 text-[#25a1e1] text-xs font-medium py-1 px-2 rounded-md hover:bg-[#25a1e1]/20 transition-colors flex items-center"
+                  >
+                    <BsCardHeading className="mr-1 w-3 h-3" /> Mémo
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateQuiz(course.id);
+                    }}
+                    className="bg-[#106996]/10 text-[#106996] text-xs font-medium py-1 px-2 rounded-md hover:bg-[#106996]/20 transition-colors flex items-center"
+                  >
+                    <FaQuestionCircle className="mr-1 w-3 h-3" /> QCM
+                  </button>
+                </div>
+                <div>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       handlePreviewCourse(course.id);
                     }} 
-                    className="flex-shrink-0 bg-[#68ccff]/10 text-[#25a1e1] p-0.5 rounded-md self-end ml-1"
+                    className="text-gray-500 p-1 hover:text-[#25a1e1] transition-colors"
                   >
-                    <FaEye className="w-2.5 h-2.5" />
+                    <FaEye className="w-3.5 h-3.5" />
                   </button>
                   <button 
                     onClick={(e) => {
@@ -200,19 +214,19 @@ const MyCourseComponent = ({ user }) => {
                         handleDeleteCourse(course.id);
                       }
                     }} 
-                    className="flex-shrink-0 bg-red-100 text-red-600 p-0.5 rounded-md self-end ml-1 mt-1"
+                    className="text-gray-500 p-1 hover:text-red-500 transition-colors ml-1"
                   >
-                    <FaTrashAlt className="w-2.5 h-2.5" />
+                    <FaTrashAlt className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
       
-      {/* Bloc d'abonnement mobile */}
-      <div className="mb-2">
+      {/* Bloc d'abonnement */}
+      <div className="mt-3">
         <SubscriptionBlock remainingCards={2} />
       </div>
     </div>
@@ -455,7 +469,7 @@ const MyCourseComponent = ({ user }) => {
                 <div className="bg-[#68ccff]/10 p-4 rounded-xl max-w-md mb-5 relative">
                   <div className="absolute -top-3 left-10 w-4 h-4 bg-[#68ccff]/10 transform rotate-45"></div>
                   <p className="text-center text-[#106996]">
-                    Sélectionne un cours pour voir les détails et créer des mémo cartes ou des QCM sur mesure !
+                    Sélectionne un cours pour voir les détails et créer des mémo cartes ou des QCMs sur mesure !
                   </p>
                 </div>
                 
