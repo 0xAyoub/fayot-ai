@@ -9,6 +9,7 @@ import { put } from '@vercel/blob';
 // Détection de l'environnement
 const isProduction = process.env.NODE_ENV === 'production';
 const isVercel = process.env.VERCEL === '1';
+const isVercelEnv = process.env.VERCEL || process.env.VERCEL_ENV;
 
 // Configuration Mistral AI
 const mistral = new Mistral({
@@ -20,11 +21,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_KEY || supabaseKey);
 
-// Création du dossier uploads s'il n'existe pas (uniquement en développement)
-if (!isProduction) {
+// Création du dossier uploads s'il n'existe pas (uniquement en développement local)
+if (!isVercelEnv) {
   const uploadDir = './public/uploads/';
   if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+    try {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    } catch (error) {
+      console.warn("Impossible de créer le dossier uploads, stockage local désactivé:", error.message);
+    }
   }
 }
 
@@ -43,7 +48,7 @@ const upload = multer({
 
 // Fonction pour gérer le stockage de fichiers (production vs développement)
 async function storeFile(file) {
-  if (isProduction && isVercel) {
+  if (isVercelEnv) {
     // Utiliser Vercel Blob Storage en production
     console.log("Utilisation de Vercel Blob Storage pour stocker le fichier");
     const blobName = `uploads/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -420,7 +425,7 @@ function createFallbackQuestions(numberOfQuestions) {
 
 // Middleware pour gérer les fichiers en production
 const handleFileUpload = async (req, res) => {
-  if (isProduction && isVercel) {
+  if (isVercelEnv) {
     // En production sur Vercel, utiliser la méthode de buffer pour le fichier
     const chunks = [];
     for await (const chunk of req) {
